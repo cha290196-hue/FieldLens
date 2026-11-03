@@ -111,6 +111,10 @@ function renderResult(result){
     const dot=document.createElement('i');dot.className='dot';const label=document.createElement('strong');label.textContent=d.name;
     const score=document.createElement('span');score.textContent=`${(d.score*100).toFixed(1)}%`;row.append(dot,label,score);list.append(row);
   });
+  const concerns=result.detections.filter(d=>!/健康|healthy/i.test(d.name)).length;
+  $('#result-advice').textContent=concerns
+    ? `关注提示：发现 ${concerns} 个疑似异常目标，建议复查叶片或虫体；结果仅供辅助观察。`
+    : '未检出异常目标不代表绝对健康，请结合实地观察判断。';
   setStatus('识别完成');
 }
 async function detect(){

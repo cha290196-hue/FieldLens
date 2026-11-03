@@ -3,6 +3,8 @@
 import argparse
 from pathlib import Path
 
+from export_models import load_detector
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run local object detection")
@@ -13,11 +15,9 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("results"))
     args = parser.parse_args()
 
-    from ultralytics import YOLO
-
     if not args.model.is_file() or not args.input.is_file():
         raise FileNotFoundError("The model and input file must exist")
-    YOLO(str(args.model), task="detect").predict(
+    load_detector(args.model.resolve()).predict(
         source=str(args.input), device=args.device, conf=args.confidence,
         imgsz=640, save=True, project=str(args.output), name="detect", exist_ok=True,
     )

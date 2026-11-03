@@ -1,6 +1,8 @@
 node_modules/
 dist/runtime/
 dist/models/
+models/*.pt
+models/*.onnx
 __pycache__/
 *.pyc
 *.log

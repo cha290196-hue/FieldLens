@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from export_models import load_detector
+
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate object detection")
@@ -14,9 +16,7 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("evaluation.json"))
     args = parser.parse_args()
 
-    from ultralytics import YOLO
-
-    model = YOLO(str(args.model), task="detect")
+    model = load_detector(args.model.resolve())
     metrics = model.val(data=str(args.data), split=args.split, device=args.device, imgsz=640, verbose=False)
     report = {
         "split": args.split,
