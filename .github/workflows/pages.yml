@@ -7,6 +7,7 @@ on:
     paths:
       - 'dist/**'
       - 'scripts/prepare_models.py'
+      - 'scripts/smoke_onnx.py'
       - 'scripts/prepare-runtime.js'
       - 'scripts/export_models.py'
       - 'tests/**'
@@ -50,6 +51,10 @@ jobs:
               assert Path('dist/models/'+key+'.onnx').stat().st_size > 15_000_000
           assert Path('dist/runtime/ort.webgpu.min.mjs').exists()
           PY
+      - name: Check ONNX forward passes
+        run: |
+          pip install onnxruntime==1.20.1
+          python scripts/smoke_onnx.py
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
