@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - improve/validated-detection-20261103
     paths:
       - dist/engine.js
