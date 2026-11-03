@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - refactor/web-desktop-20261103
+      - fix/onnx-quantized-cpu-compatibility
     paths:
       - 'dist/**'
       - 'scripts/prepare_models.py'
