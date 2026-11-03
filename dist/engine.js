@@ -49,18 +49,18 @@ export function intersectionOverUnion(a,b) {
   return union>0?intersection/union:0;
 }
 
-export function suppressBoxes(boxes, threshold=0.45, limit=80) {
+export function suppressBoxes(boxes, threshold=0.45, limit=80, crossClassDuplicateIou=1) {
   const sorted=[...boxes].sort((a,b)=>b.score-a.score).slice(0,1000);
   const result=[];
   for(const box of sorted) {
-    if(result.some(other=>box.classId===other.classId && intersectionOverUnion(box,other)>threshold)) continue;
+    if(result.some(other=>intersectionOverUnion(box,other)>(box.classId===other.classId?threshold:crossClassDuplicateIou))) continue;
     result.push(box);
     if(result.length>=limit) break;
   }
   return result;
 }
 
-export function decodeDetections(tensor, labels, transform, threshold=.25, iou=.45) {
+export function decodeDetections(tensor, labels, transform, threshold=.25, iou=.45, crossClassDuplicateIou=1) {
   const dims=tensor.dims, data=tensor.data;
   if(dims.length!==3 || dims[0]!==1) throw new Error(`模型输出形状不受支持：${dims.join(' × ')}`);
   const labelCount=labels.length;
@@ -84,7 +84,7 @@ export function decodeDetections(tensor, labels, transform, threshold=.25, iou=.
     if(x2<=x1||y2<=y1) continue;
     found.push({x1,y1,x2,y2,classId,score,name:labelFor(labels[classId])});
   }
-  return suppressBoxes(found,iou);
+  return suppressBoxes(found,iou,80,crossClassDuplicateIou);
 }
 
 export class Detector {
@@ -135,7 +135,7 @@ export class Detector {
     const outputs=await session.run({[session.inputNames[0]]:input});
     const elapsed=performance.now()-started;
     const output=outputs[session.outputNames[0]];
-    const detections=decodeDetections(output,labels,{width,height,padX,padY,scale},threshold);
+    const detections=decodeDetections(output,labels,{width,height,padX,padY,scale},threshold,.45,key==='pest'?.88:1);
     return {detections,elapsed,backend,width,height};
   }
 }

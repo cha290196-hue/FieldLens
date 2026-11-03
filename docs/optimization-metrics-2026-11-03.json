@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-03",
+  "scope": "PlantDoc official TEST, three maize disease classes only",
+  "test_images": 26,
+  "train_images": 226,
+  "val_images": 48,
+  "train_test_exact_duplicates_excluded": 3,
+  "download_errors_excluded_only_from_training_or_validation": 3,
+  "evaluation_metric": "mAP@0.5",
+  "target_threshold": 0.9,
+  "target_met": false,
+  "original": {
+    "classes": 28,
+    "weight_sha256": "d507f693b2ff1b8e0036f9b84fa9c6068d5931b40da720abf5d62d8833dd7281",
+    "mAP50": 0.01397444636355527,
+    "mAP50_95": 0.004309897588212319,
+    "precision": 0.3522002090142475,
+    "recall": 0.08333333333333333
+  },
+  "first_specialist": {
+    "classes": 3,
+    "epochs": 12,
+    "mAP50": 0.6577116666486872,
+    "mAP50_95": 0.3003385936413653,
+    "precision": 0.3782461391541206,
+    "recall": 0.8611111111111112,
+    "weight_sha256": "c12e6fc4e2e195bfcbd57db6ddb7a39fc86978e4370a9b4a15f8a0c7fdd48aef",
+    "run_url": "https://github.com/cha290196-hue/FieldLens/actions/runs/41634530999"
+  },
+  "continued_specialist": {
+    "classes": 3,
+    "additional_epochs": 18,
+    "mAP50": 0.7771281866281866,
+    "mAP50_95": 0.42869812691887804,
+    "precision": 0.5885434581180402,
+    "recall": 0.7566551957968674,
+    "weight_sha256": "b34094b3d93f61837ed7df22c213729f6b8c0200a602aa0baa2a9858a590b6b1",
+    "run_url": "https://github.com/cha290196-hue/FieldLens/actions/runs/41636591872",
+    "artifact_url": "https://github.com/cha290196-hue/FieldLens/actions/runs/41636591872/artifacts/13230719929"
+  },
+  "caveats": [
+    "The 3-class candidate is not a drop-in replacement for the 28-class disease weight",
+    "The 102-class pest detector has no verified detection mAP",
+    "Repeated use of the same public 26-image test set can introduce selection bias",
+    "Exact hash duplicate removal does not rule out perceptual duplicates or training-set overlap of the original checkpoint",
+    "This is not a validated agricultural diagnostic accuracy estimate",
+    "No live model replacement was performed"
+  ]
+}

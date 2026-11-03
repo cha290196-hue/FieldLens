@@ -29,3 +29,15 @@ test('decodes candidates-first output and rejects incompatible labels',()=>{
   assert.throws(()=>decodeDetections(tensor,['one'],{width:1,height:1,scale:1,padX:0,padY:0}),/不匹配/);
   assert.equal(labelFor('rice_leaf_roller'),'稻纵卷叶螟');
 });
+
+test('suppresses nearly identical conflicting pest labels without losing distinct bugs',()=>{
+  const base={x1:10,y1:20,x2:110,y2:120};
+  const detections=[
+    {...base,score:.92,classId:10},
+    {...base,score:.76,classId:11},
+    {x1:140,y1:20,x2:180,y2:70,score:.70,classId:11}
+  ];
+  assert.equal(suppressBoxes(detections).length,3);
+  assert.deepEqual(suppressBoxes(detections,.45,80,.88).map(x=>x.classId),[10,11]);
+  assert.equal(suppressBoxes(detections,.45,80,.88)[1].x1,140);
+});

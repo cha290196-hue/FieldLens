@@ -1,0 +1,27 @@
+name: Detection engine tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - improve/validated-detection-20261103
+    paths:
+      - dist/engine.js
+      - tests/engine.test.js
+      - .github/workflows/detection-tests.yml
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
