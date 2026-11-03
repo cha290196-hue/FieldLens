@@ -10,6 +10,7 @@ on:
       - 'desktop/**'
       - 'desktop-ui/**'
       - 'scripts/smoke_desktop_ui.py'
+      - 'scripts/smoke_desktop_inference.py'
       - 'scripts/make_icon.py'
       - 'scripts/prepare-runtime.js'
       - 'tests/**'
@@ -40,8 +41,37 @@ jobs:
           path: desktop-ui-check
           if-no-files-found: ignore
           retention-days: 30
-  windows-x64:
+  model-check:
     needs: ui-check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare browser runtime
+        run: |
+          npm install --no-package-lock
+          npm run prepare-runtime
+      - name: Install browser
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Run desktop classifier
+        run: python scripts/smoke_desktop_inference.py
+      - name: Upload model test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FieldLens-Desktop-Model-Test
+          path: desktop-inference-check/*.png
+          if-no-files-found: ignore
+          retention-days: 30
+  windows-x64:
+    needs: [ui-check, model-check]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

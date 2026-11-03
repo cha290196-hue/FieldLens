@@ -261,6 +261,9 @@ async function refreshModel(key){
     const label=row.querySelector('.download-detail')||document.createElement('div');label.className='download-detail';
     label.textContent=status.cached?'已下载 · '+(status.size/1048576).toFixed(1)+' MiB':'尚未下载 · 首次使用按需获取';
     row.querySelector('.tag-row')?.after(label);
+    const sum=['disease','pest'].map(k=>state.statuses[k]).filter(x=>x?.cached).reduce((v,x)=>v+x.size,0);
+    $('#cache-size').textContent=sum?(sum/1048576).toFixed(1)+' MiB':'0 MiB';
+    $('.storage-bar i').style.width=Math.min(100,sum/(100*1048576)*100)+'%';
   }catch(e){btn.textContent='检查连接';console.warn('Model status failed',e);}
 }
 async function downloadModel(key){
@@ -315,7 +318,7 @@ async function init(){
   stage.classList.toggle('no-grid',!state.prefs.grid);$('.app').classList.toggle('muted-motion',!state.prefs.motion);
   if(state.prefs.restore){try{const mode=localStorage.getItem('fieldlens-desktop-last-mode');if(mode==='pest')state.mode='pest';}catch{}}
   await loadDemoPhotos();setMode(state.mode);
-  if(native){refreshModelStatuses();fillCrops();}
+  if(native){if(state.prefs.lazy)refreshModelStatuses();fillCrops();}
   else{setStatus('设计界面可预览 · 推理需在桌面程序中运行','ready');}
   showView('work');renderHistory();
 }
