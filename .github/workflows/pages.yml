@@ -5,10 +5,12 @@ on:
       - main
       - refactor/web-desktop-20261103
       - fix/onnx-quantized-cpu-compatibility
+      - test/browser-inference-20261103
     paths:
       - 'dist/**'
       - 'scripts/prepare_models.py'
       - 'scripts/smoke_onnx.py'
+      - 'scripts/smoke_browser.py'
       - 'scripts/prepare-runtime.js'
       - 'scripts/export_models.py'
       - 'tests/**'
@@ -56,6 +58,19 @@ jobs:
         run: |
           pip install onnxruntime==1.20.1
           python scripts/smoke_onnx.py
+      - name: Install browser test dependencies
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Verify browser inference
+        run: python scripts/smoke_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-check
+          path: browser-check/
+          if-no-files-found: ignore
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
