@@ -2,12 +2,15 @@ name: Maize specialist benchmark (experimental)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - improve/validated-detection-20261103
-    paths:
-      - scripts/maize_experiment.py
-      - .github/workflows/maize-benchmark.yml
+    inputs:
+      training_mode:
+        description: Starting point for bounded maize experiment
+        type: choice
+        default: fresh
+        required: true
+        options:
+          - fresh
+          - continue
 
 permissions:
   contents: read
@@ -33,28 +36,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cpu
           pip install 'numpy<2.3' ultralytics==8.3.120 Pillow pyyaml
-      - name: Download baseline and check SHA-256
+      - name: Download original baseline and verify its checksum
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/fieldlens-weights
           gh release download model-assets --pattern disease.pt --dir /tmp/fieldlens-weights
           echo 'd507f693b2ff1b8e0036f9b84fa9c6068d5931b40da720abf5d62d8833dd7281  /tmp/fieldlens-weights/disease.pt' | sha256sum --check
-      - name: Fetch the first trained specialist checkpoint
+      - name: Run fresh 12-epoch candidate comparison
+        if: ${{ inputs.training_mode == 'fresh' }}
+        run: |
+          python scripts/maize_experiment.py \
+            --baseline /tmp/fieldlens-weights/disease.pt \
+            --max-train 280 --epochs 12 --imgsz 512 \
+            --batch 8 --workers 6 --device cpu
+      - name: Download verified specialist checkpoint for continued training
+        if: ${{ inputs.training_mode == 'continue' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/fieldlens-specialist
           gh run download 41634530999 --name maize-experiment-results --dir /tmp/fieldlens-specialist
           echo 'c12e6fc4e2e195bfcbd57db6ddb7a39fc86978e4370a9b4a15f8a0c7fdd48aef  /tmp/fieldlens-specialist/maize-train/weights/best.pt' | sha256sum --check
-      - name: Continue training and compare on the same fixed TEST split
+      - name: Run 18-epoch continued candidate comparison
+        if: ${{ inputs.training_mode == 'continue' }}
         run: |
           python scripts/maize_experiment.py \
             --baseline /tmp/fieldlens-weights/disease.pt \
             --initial-model /tmp/fieldlens-specialist/maize-train/weights/best.pt \
             --max-train 280 --epochs 18 --imgsz 512 \
             --batch 8 --workers 6 --device cpu
-      - name: Upload metrics, provenance, examples and candidate weights
+      - name: Upload metrics, provenance, plots and candidate weights
         if: always()
         uses: actions/upload-artifact@v4
         with:
