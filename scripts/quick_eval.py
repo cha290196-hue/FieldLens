@@ -22,9 +22,9 @@ def class_id(label, names):
     if key in inverse:
         return inverse[key]
     aliases = {
-        "cornrustleaf": ["cornrust", "corncommonrust"],
-        "cornleafblight": ["cornleafblight", "cornnorthernleafblight"],
-        "corngrayleafspot": ["corngrayleafspot"],
+        "cornrustleaf": ["cornrust", "corncommonrust", "maizerust"],
+        "cornleafblight": ["cornleafblight", "cornnorthernleafblight", "maizeblight"],
+        "corngrayleafspot": ["corngrayleafspot", "maizegrayleafspot"],
         "tomatoearlyblightleaf": ["tomatoearlyblight"],
         "tomatoleaflateblight": ["tomatolateblight"],
         "tomatoleafbacterialspot": ["tomatobacterialspot"],
