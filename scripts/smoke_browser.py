@@ -55,6 +55,10 @@ def main():
             page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
             page.goto(url, wait_until="domcontentloaded", timeout=60_000)
             assert "FieldLens" in page.title()
+            mascot = page.locator(".mascot-specimen img")
+            assert mascot.count() == 1
+            page.wait_for_function("""() => { const i = document.querySelector(".mascot-specimen img"); return i && i.complete && i.naturalWidth > 0; }""", timeout=15_000)
+            assert "mascotDrift" in page.locator(".mascot-specimen").evaluate("(el) => getComputedStyle(el).animationName")
             page.locator("#file-input").set_input_files(str(ROOT / "example-corn.jpg"))
             page.locator("#run-button").wait_for(state="visible")
             page.wait_for_function("!document.getElementById('run-button').disabled", timeout=15000)

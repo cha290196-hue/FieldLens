@@ -30,6 +30,7 @@
       "dist/engine.js",
       "dist/example-corn.jpg",
       "dist/favicon.svg",
+      "dist/mascot.webp",
       "dist/runtime/**",
       "desktop/**",
       "package.json"
