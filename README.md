@@ -23,6 +23,12 @@ FieldLens 是一款面向作物健康观察的轻量视觉工作台。选择识�
 
 [查看完整性能报告](docs/PERFORMANCE.md) · [查看原始指标 JSON](docs/performance-2026-11-03.json) · [查看测试记录及输出图](https://github.com/cha290196-hue/FieldLens/actions/runs/41631590784)
 
+### 检测质量优化实验
+
+针对三类玉米病害，已完成首次 PlantDoc 子集微调：在相同 26 张官方 TEST 图片上，专用候选模型的 mAP@0.5 从原权重的 **1.40%** 提升至 **65.77%**。但仍未达到 90%，且候选模型只覆盖 3 类，**尚未替换网页中的 28 类病害模型**。同时完善了虫害同一目标出现冲突标签时的后处理，相关单元测试已通过。
+
+[查看优化说明与数据泄漏审计](docs/OPTIMIZATION.md) · [查看候选模型实测](https://github.com/cha290196-hue/FieldLens/actions/runs/41634530999)
+
 ## 工作台预览
 
 <p align="center"><img src="docs/01-home.jpg" alt="智能检测工作台" width="100%"><br><sub>内置合成示意图的实际推理画面；检测结果不代表准确诊断。</sub></p>
