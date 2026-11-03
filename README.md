@@ -1,144 +1,141 @@
-<p align="center"><img src="assets/cover.svg" alt="FieldLens 病虫害识别工作台" width="100%"></p>
-
-<p align="center"><strong>一张图片，开启一次细致的田间观察。</strong></p>
-<p align="center">病害识别 · 害虫检测 · 本地推理 · 结果记录</p>
+<p align="center"><img src="assets/cover.svg" alt="FieldLens" width="100%"></p>
 
 <p align="center">
-  <a href="https://cha290196-hue.github.io/FieldLens/"><strong>🌐 在线体验 FieldLens</strong></a>
-  &nbsp; · &nbsp;
-  <a href="https://github.com/cha290196-hue/FieldLens/actions/workflows/pages.yml">查看部署状态</a>
+<a href="https://cha290196-hue.github.io/FieldLens/">Web Demo</a> ·
+<a href="https://github.com/cha290196-hue/FieldLens/releases">Windows 安装程序</a> ·
+<a href="https://github.com/cha290196-hue/FieldLens/actions">构建状态</a>
 </p>
 
----
+# FieldLens
 
-FieldLens 是一款面向作物健康观察的轻量视觉工作台。选择识别方向，上传图片或视频，即可查看目标的位置、类别、置信度与处理耗时。图片和识别记录保存在当前设备上。
+作物病害分类、农业害虫检测、本地分析记录。
 
-**在线体验：** [https://cha290196-hue.github.io/FieldLens/](https://cha290196-hue.github.io/FieldLens/)。首次使用某个模型时，浏览器需要下载对应模型文件；识别在本机完成。
+| 功能 | Web | Windows |
+| :-- | :-- | :-- |
+| 图片上传 | 支持 | 支持 |
+| 视频当前帧分析 | 支持 | 支持 |
+| 病害图像分类 | 14 种作物 / 38 类状态 | 59 种作物 / 387 类状态 |
+| 害虫目标检测 | 102 类 | 102 类 |
+| 作物类别筛选 | 支持 | 支持 |
+| 类别概率与推理时间 | 支持 | 支持 |
+| 检测框导出 PNG | 支持 | 支持 |
+| 本地分析记录 | 浏览器 | 本机 |
+| 权重下载 | 页面首次调用 | 首次调用时按需下载 |
 
-更新界面后，可在仓库的 Actions 中手动运行 `Publish demo`，刷新在线演示。
+病害模型输出整张图片的分类概率，不提供病斑检测框。害虫模型输出位置、类别与检测置信度。
 
-## 性能实测
+## Web Demo
 
-已使用项目发布的真实模型权重完成 GitHub 云端测试。病害模型在 PlantDoc TEST 的 **26 张玉米病害样本（3 类）**上的 mAP@0.5 为 **1.43%**、Recall 为 **8.33%**。这是类别受限的外部小样本结果，**不代表全模型准确率**；虫害模型目前仅完成实际推理与耗时测试，尚无可靠的标注子集 mAP。
+[打开网页](https://cha290196-hue.github.io/FieldLens/)
 
-[查看完整性能报告](docs/PERFORMANCE.md) · [查看原始指标 JSON](docs/performance-2026-11-03.json) · [查看测试记录及输出图](https://github.com/cha290196-hue/FieldLens/actions/runs/41631590784)
+打开网页，选择病害分类或害虫检测，添加图片并运行。模型在浏览器本地执行；不使用图像推理服务器。首次运行需要加载模型文件；当 WebGPU 不可用时采用 WASM。
 
-### 检测质量优化实验
+## Windows
 
-针对三类玉米病害，完成两轮 PlantDoc 子集训练：在相同 26 张官方 TEST 图片上，专用候选模型的 mAP@0.5 从原 28 类模型的 **1.40%** 提升至 **77.71%**；mAP@0.5:0.95 为 **42.87%**。**尚未达到 90%，且此成绩仅针对 3 类玉米病害，不能代表全部 28 类病害和 102 类虫害。** 候选权重未替换线上模型。虫害同一目标冲突标签的后处理也已改进并通过单元测试。
+[Windows 安装程序](https://github.com/cha290196-hue/FieldLens/releases)
 
-[查看优化说明与数据泄漏审计](docs/OPTIMIZATION.md) · [查看最新候选模型实测与下载](https://github.com/cha290196-hue/FieldLens/actions/runs/41636591872)
+下载并运行名为 **FieldLens-Setup-2.0.0-x64.exe** 的 NSIS 安装程序。支持安装目录选择、桌面快捷方式和卸载。Windows 10/11 x64。
 
-## 工作台预览
+安装程序不包含模型权重。首次调用某模型时下载对应 ONNX 文件，并检查 SHA-256；后续使用缓存。下载完成后可在离线状态使用已缓存的模型。安装程序未进行商业代码签名，Windows 可能显示 SmartScreen 提示。
 
-<p align="center"><img src="docs/01-home.jpg" alt="智能检测工作台" width="100%"><br><sub>内置合成示意图的实际推理画面；检测结果不代表准确诊断。</sub></p>
+## 模型与数据集
 
-<table><tr><td width="50%"><img src="docs/02-input.jpg" alt="图片输入界面"><br><strong>图片输入</strong><br>拖放上传，或载入合成示例图。</td><td width="50%"><img src="docs/03-models.jpg" alt="模型中心界面"><br><strong>模型中心</strong><br>在病害识别与害虫检测之间切换。</td></tr></table>
+表中各项指标为对应模型的公开训练与验证记录，并非本项目独立复算的数据。不同模型的测试集和指标不可直接横向比较。
 
-<p align="center"><img src="docs/04-guide.jpg" alt="使用指南" width="100%"></p>
+| 项目 | Web 病害分类 | Windows 病害分类 | 害虫检测 |
+| --- | --- | --- | --- |
+| 结构 | DINOv2 ViT-S/14 + 分类头 | DINOv2 ViT-B/14 + 分类头 | YOLO11s |
+| 任务 | 图像分类 | 图像分类 | 目标检测 |
+| 类别 | 38 | 387 | 102 |
+| 数据集 | PlantVillage | PlantVillage、PlantWild v1/v2、多作物研究数据 | IP102 |
+| 图像尺寸 | 224 × 224 | 224 × 224 | 640 × 640 |
+| 推理权重 | ONNX INT8 | ONNX 4-bit 权重量化 | ONNX |
+| 权重体积 | 约 24 MB | 约 57.6 MB | 依导出文件而定 |
 
-<p align="center"><img src="docs/05-history.jpg" alt="识别记录" width="100%"></p>
+### Web 病害模型
 
-## 功能
+**数据**：PlantVillage 彩色叶片照片约 54,305 张；训练 43,443 张、测试 10,862 张；按已识别的物理叶片组隔离重复叶片。
 
-| 功能 | 说明 |
+**训练**：DINOv2-Small 视觉特征提取器，使用 CLS token 与平均 patch token 拼接特征训练多项逻辑回归分类头。
+
+| 测试 | Accuracy | Macro-F1 |
+| --- | ---: | ---: |
+| 浮点权重，PlantVillage 测试集 | 98.9% | 98.5% |
+| INT8 ONNX，PlantVillage 测试集 | 98.7% | 98.1% |
+
+测试数据以干净背景的单片叶子照片为主，不代表野外复杂背景的表现。
+
+### Windows 病害模型
+
+**数据**：PlantVillage、PlantWild v1/v2 及多作物研究图像；训练集 238,028 张、测试集 28,328 张。公开的去近重复测试子集包含 27,900 张图像。
+
+**训练**：DINOv2 ViT-B/14，先训练分类头再进行全模型微调，使用类别均衡采样、田间图片与图像增强。
+
+| 测试集 | 数量 | Accuracy | Macro-F1 |
+| --- | ---: | ---: | ---: |
+| 去近重复测试子集 | 27,900 | 92.9% | 0.906 |
+| 去近重复、已知作物 | 27,900 | 94.2% | 0.926 |
+| PlantVillage 实验室照片 | 4,853 | 99.6% | 0.997 |
+| 研究数据子集 | 20,144 | 94.0% | 0.926 |
+| PlantWild 田间照片 | 2,983 | 74.7% | 0.744 |
+| PlantWild 田间照片、已知作物 | 2,983 | — | 0.857 |
+
+4-bit 权重量化版本在公开的 280 张抽查照片中，与 PyTorch 原始权重的 Top-1 分类结果一致比例为 99.6%。
+
+### 害虫模型
+
+**数据**：IP102，102 类农业害虫。模型训练说明使用约 34,000 张经过平衡处理的样本。
+
+**训练**：YOLO11s，输入尺寸 640/896，训练 77 Epoch，训练设备 A100。
+
+| 指标 | 训练集 | 验证集 |
+| --- | ---: | ---: |
+| Precision | 0.912 | 0.744 |
+| Recall | 0.923 | 0.789 |
+| mAP@0.5 | 0.941 | 0.815 |
+| mAP@0.5:0.95 | 0.838 | 0.605 |
+
+以上为公开权重的自报结果。不同地区、拍摄设备、光照及病害阶段可能影响实际表现。
+
+### 数据范围
+
+PlantVillage 主要包含受控拍摄的植物叶片；PlantWild 提供真实环境中的植物图像；IP102 面向农业害虫类别与检测。数据集类别体系与标注形式不同，不应将分类 Accuracy 与检测 mAP 比较。
+
+关于模型许可证、模型来源和数据集授权条件，见 [第三方组件及许可](THIRD_PARTY_NOTICES.md)。
+
+## 本地开发
+
+Node.js 22 和 Python 3.11。
+
+    npm install
+    npm test
+    npm run prepare-runtime
+
+准备浏览器推理权重：
+
+    python -m pip install torch==2.6.0 torchvision==0.21.0 "numpy<2.3" ultralytics==8.3.120 onnx==1.17.0
+    python scripts/prepare_models.py
+    python -m http.server 8000 --directory dist
+
+浏览器打开 http://localhost:8000 。
+
+Windows：
+
+    python -m pip install pillow
+    python scripts/make_icon.py
+    npm run desktop:build
+
+Windows 安装程序由 [Windows installer](https://github.com/cha290196-hue/FieldLens/actions/workflows/desktop.yml) 工作流在 Windows runner 上构建。Web Demo 由 [Web demo](https://github.com/cha290196-hue/FieldLens/actions/workflows/pages.yml) 构建并发布。
+
+## 仓库结构
+
+| 路径 | 内容 |
 | --- | --- |
-| 病害识别 | 定位玉米、番茄、水稻、茶叶的部分病害及相关目标，共 28 类 |
-| 害虫检测 | 定位虫体并显示类别与置信度，共 102 类 |
-| 图片与视频 | 图片单次分析；视频按可处理的帧逐帧分析 |
-| 本地运行 | 推理在浏览器中执行，使用可用的计算后端 |
-| 识别记录 | 在当前浏览器保存最近的识别摘要 |
-| 导出画面 | 下载当前带检测框的图片或视频画面 |
-| 关注提示 | 检出疑似异常时给出本地复查提示 |
-| 评估工具 | 对有标注的数据计算 mAP、精确率与召回率 |
+| `dist/` | Web UI、ONNX 推理和页面资源 |
+| `desktop/` | Electron 窗口、模型缓存、文件校验 |
+| `scripts/` | 模型导出、评估和构建 |
+| `tests/` | 推理与分类单元测试 |
+| `docs/` | 检测与验证记录 |
+| `.github/workflows/` | Web 与 Windows 构建 |
 
-示例图为合成示意图，仅用于体验操作流程；模型性能应在独立、带标注的真实样本上评估。真实照片可能出现漏检和误分类，识别结果仅供辅助观察。
-
-## 真实图片体验包
-
-`examples/` 中有 4 张轻量图片，可下载后上传到工作台体验。图片描述是样例内容，不代表模型一定会识别正确。
-
-| 文件 | 内容 | 建议方向 |
-| --- | --- | --- |
-| `01-rice-blast.jpg` | 水稻叶片病斑 | 作物病害 |
-| `02-tomato-blight.jpg` | 番茄病叶 | 作物病害 |
-| `03-rice-weevil.jpg` | 稻水象甲 | 农田虫害 |
-| `04-aphid.jpg` | 蚜虫 | 农田虫害 |
-
-这些图片没有边界框标注，仅用于功能体验，不能直接用于计算 mAP。
-
-## 在本地运行
-
-需要 Node.js 20 及以上；准备或评估模型时还需要 Python 3.11。
-
-```bash
-npm install --no-package-lock
-npm run prepare-runtime
-```
-
-从本仓库的模型发布包取得 `disease.pt` 和 `pest.pt`，放入 `models/` 目录后，导出浏览器使用的模型：
-
-```bash
-pip install torch==2.6.0 torchvision==0.21.0 "numpy<2.3" ultralytics==8.3.120 onnx==1.17.0
-python scripts/export_models.py --disease models/disease.pt --pest models/pest.pt
-python -m http.server 8000 --directory dist
-```
-
-浏览器打开 `http://localhost:8000`。首次加载模型需要等待；WebGPU 不可用时会尝试使用 WebAssembly。
-
-也可以直接在本地对图片或视频运行检测。`--device cpu` 使用 CPU，支持 CUDA 的设备可使用 `--device 0`：
-
-```bash
-python scripts/predict.py --model models/disease.pt --input image.jpg --device cpu
-```
-
-单张图片可用于检查速度，但不能据此得出模型准确率。可在实际设备上重复测量推理耗时：
-
-```bash
-python scripts/benchmark.py --model models/disease.pt --image image.jpg --device cpu --runs 30
-```
-
-## 模型评估
-
-使用带边界框标注的数据集，并在数据配置中指定测试集：
-
-```bash
-python scripts/evaluate.py --model models/disease.pt --data dataset.yaml --split test --device cpu
-```
-
-结果输出到 `evaluation.json`。对测试集样本的数量、类别和采集条件应如实记录；不同数据集上的指标不能直接比较。
-
-几张图片适合检查流程，不能代表模型整体性能。要估计 mAP、精确率和召回率，需要独立且有边界框标注的测试样本。
-
-## 按需训练
-
-演示直接使用已训练权重，不需要训练集。如果课程要求重新训练，可准备带边界框标注、并划分好训练集和验证集的数据，类别及编号需与所选权重一致，然后运行：
-
-```bash
-python scripts/train.py --model models/disease.pt --data dataset.yaml --epochs 30 --batch 8 --device 0
-```
-
-训练完成后，再使用独立测试集执行评估。训练和评估结果必须以实际运行记录为准。
-
-## 结构
-
-```text
-FieldLens/
-├── dist/                 浏览器界面与推理逻辑
-├── scripts/              模型导出、评估与本地推理
-├── tests/                目标框解码和后处理检查
-├── docs/                 项目界面截图
-├── examples/             少量真实图片，供功能体验
-├── models/               本地模型文件位置
-└── .github/workflows/    演示构建流程
-```
-
-## 校验
-
-```bash
-npm test
-```
-
----
-
-<p align="center"><sub>FIELDLENS &nbsp; / &nbsp; OBSERVE · UNDERSTAND · GROW</sub></p>
+历史版本与旧模型实验记录保留在 Git 提交历史中。

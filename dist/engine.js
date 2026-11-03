@@ -1,141 +1,193 @@
-const MODEL_DIR = new URL('./models/', import.meta.url);
 const RUNTIME_DIR = new URL('./runtime/', import.meta.url);
-const MODEL_FILES = { disease: 'disease', pest: 'pest' };
-const INPUT_SIZE = 640;
-const NAME_MAP = {
-  'maize blight':'玉米叶枯病', 'maize rust':'玉米锈病',
-  'maize gray leaf spot':'玉米灰斑病', 'maize healthy':'健康玉米',
-  'tomato healthy':'健康番茄', 'tomato leaf blight':'番茄叶枯病',
-  'tomato leaf curl':'番茄卷叶症状', 'healthy tea':'健康茶叶',
-  'tea leaf blight':'茶叶叶枯病', 'tomato bacterial floundering':'番茄细菌性异常',
-  'maize abiotic disease':'玉米非生物性异常', 'maize stripe disease':'玉米条纹病',
-  'tomato alternaria diseases':'番茄链格孢病', 'tomato blossom end rot':'番茄脐腐病',
-  'tomato excess nitrogen':'番茄氮素过量', 'tomato healthy fruit':'健康番茄果实',
-  'fall armyworm':'草地贪夜蛾', 'maize armyworm activity':'玉米夜蛾危害',
-  'tomato helicoverpa armigera':'番茄棉铃虫', 'rice brown planthopper':'水稻褐飞虱',
-  'healthy rice':'健康水稻', 'tea algal leaf spot':'茶叶藻斑病',
-  'tea helopeltis':'茶叶盲蝽', 'tea red spider':'茶叶红蜘蛛',
-  'tea green mirid bug':'茶小绿盲蝽', 'rice hispa':'稻铁甲虫',
-  'rice leaf blast':'水稻叶瘟', 'rice brown spot':'水稻褐斑病',
-  blight:'玉米大斑病', common_rust:'玉米普通锈病', gray_spot:'玉米灰斑病',
-  health:'健康玉米叶片', healthy:'健康叶片', 'corn leaf blight':'玉米大斑病',
-  'common rust':'玉米普通锈病', 'gray leaf spot':'玉米灰斑病',
-  'rice leaf roller':'稻纵卷叶螟', 'paddy stem maggot':'稻秆潜蝇',
-  'brown plant hopper':'褐飞虱', aphids:'蚜虫', aphid:'蚜虫',
-  'mole cricket':'蝼蛄', 'blister beetle':'芫菁',
-  'rice leaf caterpillar':'稻叶毛虫', 'asiatic rice borer':'亚洲玉米螟',
-  'yellow rice borer':'二化螟', 'rice gall midge':'稻瘿蚊',
-  'white backed plant hopper':'白背飞虱', 'small brown plant hopper':'灰飞虱',
-  'rice water weevil':'稻水象甲', 'rice leafhopper':'稻叶蝉',
-  'rice shell pest':'稻壳虫', 'rice stemfly':'稻秆蝇',
-  'corn borer':'玉米螟', 'army worm':'黏虫', 'black cutworm':'小地老虎',
-  'wheat blossom midge':'麦穗吸浆虫', 'wheat sawfly':'麦茎蜂',
-  'cabbage army worm':'菜青虫', 'beet army worm':'甜菜夜蛾',
-  'red spider':'红蜘蛛', grub:'蛴螬', wireworm:'金针虫',
-  beetle:'甲虫', 'fruit fly':'果蝇', 'scale insect':'介壳虫'
+const MODEL_DIR = new URL('./models/', import.meta.url);
+const FIXED_NAMES = {
+  blight:'玉米大斑病', aphid:'蚜虫', aphids:'蚜虫',
+  rice_leaf_roller:'稻纵卷叶螟', brown_plant_hopper:'褐飞虱',
+  rice_weevil:'米象', fall_armyworm:'草地贪夜蛾'
 };
-
-export function labelFor(name) {
-  const raw = String(name ?? '').trim();
-  const key = raw.toLowerCase().replaceAll('_', ' ').replace(/\s+/g, ' ');
-  return NAME_MAP[raw.toLowerCase()] || NAME_MAP[key] || raw.replaceAll('_', ' ');
+const CROPS = {
+  apple:'苹果', tomato:'番茄', potato:'马铃薯', corn:'玉米', maize:'玉米',
+  rice:'水稻', wheat:'小麦', grape:'葡萄', peach:'桃', strawberry:'草莓',
+  soybean:'大豆', soybeans:'大豆', blueberry:'蓝莓', raspberry:'树莓',
+  pepper:'辣椒', bell_pepper:'甜椒', cherry:'樱桃', orange:'柑橘',
+  squash:'南瓜', tea:'茶', banana:'香蕉', cotton:'棉花', mango:'芒果',
+  cucumber:'黄瓜', cabbage:'甘蓝', sugarcane:'甘蔗', cauliflower:'花椰菜'
+};
+const TERMS = {
+  healthy:'健康', common_rust:'普通锈病', early_blight:'早疫病',
+  late_blight:'晚疫病', bacterial_spot:'细菌性斑点病',
+  powdery_mildew:'白粉病', leaf_mold:'叶霉病', black_rot:'黑腐病',
+  apple_scab:'苹果黑星病', target_spot:'靶斑病',
+  northern_leaf_blight:'大斑病', mosaic_virus:'花叶病毒病',
+  leaf_curl:'卷叶病', downy_mildew:'霜霉病'
+};
+function normalizeKey(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
-
-export function intersectionOverUnion(a,b) {
-  const w=Math.max(0,Math.min(a.x2,b.x2)-Math.max(a.x1,b.x1));
-  const h=Math.max(0,Math.min(a.y2,b.y2)-Math.max(a.y1,b.y1));
-  const intersection=w*h;
-  const union=(a.x2-a.x1)*(a.y2-a.y1)+(b.x2-b.x1)*(b.y2-b.y1)-intersection;
-  return union>0?intersection/union:0;
+export function labelFor(label) {
+  const raw = String(label ?? '').trim();
+  const direct = FIXED_NAMES[normalizeKey(raw)];
+  if (direct) return direct;
+  let parts = null;
+  if (raw.includes('___')) parts = raw.split('___');
+  else if (raw.includes('::')) parts = raw.split('::');
+  if (parts && parts.length > 1) {
+    const cropKey = normalizeKey(parts[0].replace(/^\s*corn\s*\(maize\)/i, 'maize'));
+    const diseaseName = parts.slice(1).join(' ').replace(/_/g, ' ').trim();
+    const condition = TERMS[normalizeKey(diseaseName)] || diseaseName;
+    return (CROPS[cropKey] || parts[0].replaceAll('_', ' ')) + ' · ' + condition;
+  }
+  return TERMS[normalizeKey(raw)] || raw.replaceAll('_', ' ');
 }
-
-export function suppressBoxes(boxes, threshold=0.45, limit=80, crossClassDuplicateIou=1) {
-  const sorted=[...boxes].sort((a,b)=>b.score-a.score).slice(0,1000);
-  const result=[];
-  for(const box of sorted) {
-    if(result.some(other=>intersectionOverUnion(box,other)>(box.classId===other.classId?threshold:crossClassDuplicateIou))) continue;
+export function intersectionOverUnion(a, b) {
+  const w = Math.max(0, Math.min(a.x2,b.x2) - Math.max(a.x1,b.x1));
+  const h = Math.max(0, Math.min(a.y2,b.y2) - Math.max(a.y1,b.y1));
+  const intersect = w*h;
+  const areaA = Math.max(0,a.x2-a.x1)*Math.max(0,a.y2-a.y1);
+  const areaB = Math.max(0,b.x2-b.x1)*Math.max(0,b.y2-b.y1);
+  const union = areaA+areaB-intersect;
+  return union>0?intersect/union:0;
+}
+export function suppressBoxes(boxes, threshold=.45, limit=80, crossClassDuplicateIou=1) {
+  const sorted = [...boxes].sort((a,b)=>b.score-a.score).slice(0,1000);
+  const result = [];
+  for (const box of sorted) {
+    if(result.some(other=>intersectionOverUnion(box,other)>(box.classId===other.classId?threshold:crossClassDuplicateIou)))continue;
     result.push(box);
-    if(result.length>=limit) break;
+    if(result.length>=limit)break;
   }
   return result;
 }
-
 export function decodeDetections(tensor, labels, transform, threshold=.25, iou=.45, crossClassDuplicateIou=1) {
-  const dims=tensor.dims, data=tensor.data;
-  if(dims.length!==3 || dims[0]!==1) throw new Error(`模型输出形状不受支持：${dims.join(' × ')}`);
-  const labelCount=labels.length;
-  const channels=4+labelCount;
-  let candidates, columnMajor;
-  if(dims[1]===channels) { candidates=dims[2]; columnMajor=true; }
-  else if(dims[2]===channels) { candidates=dims[1]; columnMajor=false; }
-  else throw new Error(`模型类别数与输出不匹配：${dims.join(' × ')}`);
-  const get=(row,col)=>columnMajor?data[col*candidates+row]:data[row*channels+col];
+  const dims=tensor.dims,data=tensor.data;
+  if(dims.length!==3||dims[0]!==1)throw new Error('模型输出形状不受支持：'+dims.join('×'));
+  const count=labels.length,channels=4+count;
+  let candidates,channelFirst;
+  if(dims[1]===channels){candidates=dims[2];channelFirst=true;}
+  else if(dims[2]===channels){candidates=dims[1];channelFirst=false;}
+  else throw new Error('模型类别数与输出不匹配：'+dims.join('×'));
+  const get=(row,col)=>channelFirst?data[col*candidates+row]:data[row*channels+col];
   const found=[];
-  for(let i=0;i<candidates;i++) {
-    let classId=0,score=-Infinity;
-    for(let c=0;c<labelCount;c++) {const s=get(i,c+4); if(s>score){score=s;classId=c;}}
-    if(score<threshold || !Number.isFinite(score)) continue;
+  for(let i=0;i<candidates;i++){
+    let cls=0,score=-Infinity;
+    for(let c=0;c<count;c++){const p=get(i,c+4);if(p>score){score=p;cls=c;}}
+    if(score<threshold||!Number.isFinite(score))continue;
     const cx=get(i,0),cy=get(i,1),w=get(i,2),h=get(i,3);
-    if(![cx,cy,w,h].every(Number.isFinite)||w<=0||h<=0) continue;
+    if(![cx,cy,w,h].every(Number.isFinite)||w<=0||h<=0)continue;
     const x1=Math.max(0,Math.min(transform.width,(cx-w/2-transform.padX)/transform.scale));
-    const y1=Math.max(0,Math.min(transform.height,(cy-h/2-transform.padY)/transform.scale));
     const x2=Math.max(0,Math.min(transform.width,(cx+w/2-transform.padX)/transform.scale));
+    const y1=Math.max(0,Math.min(transform.height,(cy-h/2-transform.padY)/transform.scale));
     const y2=Math.max(0,Math.min(transform.height,(cy+h/2-transform.padY)/transform.scale));
-    if(x2<=x1||y2<=y1) continue;
-    found.push({x1,y1,x2,y2,classId,score,name:labelFor(labels[classId])});
+    if(x2<=x1||y2<=y1)continue;
+    found.push({x1,y1,x2,y2,score,classId:cls,name:labelFor(labels[cls])});
   }
   return suppressBoxes(found,iou,80,crossClassDuplicateIou);
 }
-
-export class Detector {
-  constructor(onStatus=()=>{}) { this.onStatus=onStatus;this.sessions=new Map();this.ort=null; }
+export function softmax(logits, ids=null) {
+  const allow = ids || Array.from(logits.keys());
+  if(!allow.length)return[];
+  const max = Math.max(...allow.map(i=>logits[i]));
+  const exps = allow.map(i=>Math.exp(logits[i]-max));
+  const sum = exps.reduce((a,b)=>a+b,0);
+  return allow.map((id,i)=>({classId:id,score:sum?exps[i]/sum:0}));
+}
+function imageSize(source) {
+  const width=source.naturalWidth||source.videoWidth||source.width;
+  const height=source.naturalHeight||source.videoHeight||source.height;
+  if(!width||!height)throw new Error('无法读取图像尺寸');
+  return {width,height};
+}
+function pixelsToTensor(canvas, ort, mean=[0,0,0], std=[1,1,1]) {
+  const size=canvas.width,ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const rgba=ctx.getImageData(0,0,size,size).data,plane=size*size;
+  const floats=new Float32Array(plane*3);
+  for(let i=0;i<plane;i++){
+    floats[i]=(rgba[4*i]/255-mean[0])/std[0];
+    floats[plane+i]=(rgba[4*i+1]/255-mean[1])/std[1];
+    floats[2*plane+i]=(rgba[4*i+2]/255-mean[2])/std[2];
+  }
+  return new ort.Tensor('float32',floats,[1,3,size,size]);
+}
+function cropTensor(source, info, ort) {
+  const {width,height}=imageSize(source),size=Number(info.img_size||224);
+  const cropPct=Number(info.crop_pct||.875);
+  const sourceSide=Math.min(width,height)*cropPct;
+  const x=(width-sourceSide)/2,y=(height-sourceSide)/2;
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
+  canvas.getContext('2d').drawImage(source,x,y,sourceSide,sourceSide,0,0,size,size);
+  return pixelsToTensor(canvas,ort,info.mean||[.485,.456,.406],info.std||[.229,.224,.225]);
+}
+function detectionTensor(source, ort) {
+  const {width,height}=imageSize(source),size=640;
+  const scale=Math.min(size/width,size/height);
+  const rw=Math.round(width*scale),rh=Math.round(height*scale);
+  const padX=(size-rw)/2,padY=(size-rh)/2;
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#727272';ctx.fillRect(0,0,size,size);ctx.drawImage(source,padX,padY,rw,rh);
+  return {tensor:pixelsToTensor(canvas,ort),transform:{width,height,scale,padX,padY}};
+}
+export class InferenceEngine {
+  constructor(onStatus=()=>{}) {
+    this.onStatus=onStatus;this.ort=null;this.sessions=new Map();this.metadataCache=new Map();
+  }
+  async metadata(key) {
+    if(this.metadataCache.has(key))return this.metadataCache.get(key);
+    if(!['disease','pest'].includes(key))throw new Error('未知模型类型');
+    let info;
+    if(globalThis.fieldlensDesktop){
+      info=await globalThis.fieldlensDesktop.modelMetadata(key);
+    } else {
+      const response=await fetch(new URL(key+'.json',MODEL_DIR));
+      if(!response.ok)throw new Error('模型清单尚未部署：'+key);
+      info=await response.json();
+    }
+    if(!Array.isArray(info.labels)||!info.labels.length)throw new Error('模型类别数据无效');
+    this.metadataCache.set(key,info);
+    return info;
+  }
   async load(key) {
-    if(this.sessions.has(key)) return this.sessions.get(key);
-    if(!MODEL_FILES[key]) throw new Error('未找到所选模型');
-    this.onStatus('正在加载识别引擎…');
-    if(!this.ort) {
-      try { this.ort=await import('./runtime/ort.webgpu.min.mjs'); }
-      catch { throw new Error('识别引擎未准备好，请检查项目是否完成构建。'); }
+    if(this.sessions.has(key))return this.sessions.get(key);
+    this.onStatus('载入模型配置…');
+    const info=await this.metadata(key);
+    if(!this.ort){
+      this.onStatus('初始化 ONNX 推理引擎…');
+      try{this.ort=await import('./runtime/ort.webgpu.min.mjs');}
+      catch{throw new Error('推理运行库缺失，请检查构建产物');}
       this.ort.env.wasm.wasmPaths=RUNTIME_DIR.href;
       this.ort.env.wasm.numThreads=1;
     }
-    const stem=MODEL_FILES[key];
-    this.onStatus('正在加载模型，首次使用可能需要一些时间…');
-    const labelsResponse=await fetch(new URL(`${stem}.json`,MODEL_DIR));
-    if(!labelsResponse.ok) throw new Error('模型配置未找到，请先完成模型准备。');
-    const info=await labelsResponse.json();
-    if(!Array.isArray(info.labels)||!info.labels.length) throw new Error('模型类别配置无效。');
-    const url=new URL(`${stem}.onnx`,MODEL_DIR).href;
+    this.onStatus('加载模型权重，首次使用需要一些时间…');
+    const url=globalThis.fieldlensDesktop
+      ?(await globalThis.fieldlensDesktop.ensureModel(key)).url
+      :new URL(key+'.onnx',MODEL_DIR).href;
     let session,backend='WASM';
-    if(navigator.gpu) {
-      try { session=await this.ort.InferenceSession.create(url,{executionProviders:['webgpu']}); backend='WebGPU'; }
-      catch(e) { console.warn('WebGPU is unavailable; using WASM.',e); }
+    if(key==='pest'&&typeof navigator!=='undefined'&&navigator.gpu){
+      try{session=await this.ort.InferenceSession.create(url,{executionProviders:['webgpu']});backend='WebGPU';}
+      catch(e){console.warn('Falling back to WASM',e);}
     }
-    if(!session) session=await this.ort.InferenceSession.create(url,{executionProviders:['wasm']});
-    const instance={session,labels:info.labels,backend};this.sessions.set(key,instance);return instance;
+    if(!session)session=await this.ort.InferenceSession.create(url,{executionProviders:['wasm']});
+    const item={session,info,backend};
+    this.sessions.set(key,item);return item;
   }
-  async run(source,key,threshold=.25) {
-    const {session,labels,backend}=await this.load(key);
-    this.onStatus('正在识别图像…');
-    const width=source.naturalWidth||source.videoWidth||source.width;
-    const height=source.naturalHeight||source.videoHeight||source.height;
-    if(!width||!height) throw new Error('无法读取图片尺寸。');
-    const scale=Math.min(INPUT_SIZE/width,INPUT_SIZE/height);
-    const resizedW=Math.round(width*scale),resizedH=Math.round(height*scale);
-    const padX=(INPUT_SIZE-resizedW)/2,padY=(INPUT_SIZE-resizedH)/2;
-    const canvas=document.createElement('canvas');canvas.width=canvas.height=INPUT_SIZE;
-    const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    ctx.fillStyle='#727272';ctx.fillRect(0,0,INPUT_SIZE,INPUT_SIZE);
-    ctx.drawImage(source,padX,padY,resizedW,resizedH);
-    const rgba=ctx.getImageData(0,0,INPUT_SIZE,INPUT_SIZE).data;
-    const plane=INPUT_SIZE*INPUT_SIZE,chw=new Float32Array(plane*3);
-    for(let i=0;i<plane;i++){chw[i]=rgba[i*4]/255;chw[plane+i]=rgba[i*4+1]/255;chw[2*plane+i]=rgba[i*4+2]/255;}
-    const input=new this.ort.Tensor('float32',chw,[1,3,INPUT_SIZE,INPUT_SIZE]);
-    const started=performance.now();
-    const outputs=await session.run({[session.inputNames[0]]:input});
-    const elapsed=performance.now()-started;
-    const output=outputs[session.outputNames[0]];
-    const detections=decodeDetections(output,labels,{width,height,padX,padY,scale},threshold,.45,key==='pest'?.88:1);
-    return {detections,elapsed,backend,width,height};
+  async run(source,key,options={}) {
+    const {session,info,backend}=await this.load(key);
+    this.onStatus('运行推理…');
+    const classification=key==='disease';
+    const prep=classification?{tensor:cropTensor(source,info,this.ort)}:detectionTensor(source,this.ort);
+    const start=performance.now();
+    const output=await session.run({[session.inputNames[0]]:prep.tensor});
+    const ms=performance.now()-start;
+    if(classification){
+      const logits=(output.logits||output[session.outputNames[0]]).data;
+      let ids=null;
+      if(options.crop){
+        ids=info.labels.map((x,i)=>({x,i})).filter(({x})=>String(x).toLowerCase().startsWith(String(options.crop).toLowerCase()+'::')||String(x).toLowerCase().startsWith(String(options.crop).toLowerCase()+'___')).map(({i})=>i);
+        if(!ids.length)ids=null;
+      }
+      const ranked=softmax(logits,ids).sort((a,b)=>b.score-a.score).slice(0,5).map(x=>({...x,name:labelFor(info.labels[x.classId])}));
+      return {kind:'classification',predictions:ranked,elapsed:ms,backend,...imageSize(source)};
+    }
+    const detections=decodeDetections(output[session.outputNames[0]],info.labels,prep.transform,options.threshold??.25,.45,.88);
+    return {kind:'detection',detections,elapsed:ms,backend,...imageSize(source)};
   }
 }
