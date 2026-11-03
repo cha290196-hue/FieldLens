@@ -125,7 +125,7 @@ def plantdoc_test(model, out, limit, seed, device):
     import yaml
     config = root / "test.yaml"
     config.write_text(yaml.safe_dump({"path":str(root.resolve()),"test":"images/test",
-        "val":"images/test","names":names},sort_keys=False), encoding="utf-8")
+        "train":"images/test","val":"images/test","names":names},sort_keys=False), encoding="utf-8")
     try:
         metrics = model.val(data=str(config),split="test",device=device,batch=4,imgsz=640,
                             workers=0,verbose=False,plots=False,project=str(out),name="plantdoc",exist_ok=True)
