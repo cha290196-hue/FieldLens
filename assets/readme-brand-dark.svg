@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 236" width="1200" height="236" role="img" aria-labelledby="title description">
+<title id="title">FieldLens</title><desc id="description">Crop image analysis. Web and Windows.</desc>
+<rect x="1" y="1" width="1198" height="234" rx="22" fill="#223139" stroke="#3b4b52" stroke-width="2"/>
+<g transform="translate(340 67) rotate(-5 50 50)">
+ <rect width="100" height="100" rx="28" fill="#32434a"/>
+ <rect x="24" y="24" width="22" height="22" rx="5" fill="none" stroke="#f5f1e9" stroke-width="3"/>
+ <circle cx="68" cy="35" r="11" fill="#dba776"/>
+ <circle cx="35" cy="68" r="11" fill="none" stroke="#f5f1e9" stroke-width="3"/>
+ <rect x="57" y="57" width="22" height="22" rx="5" fill="none" stroke="#f5f1e9" stroke-width="3"/>
+</g>
+<text x="474" y="129" font-family="Inter, Segoe UI, Arial, Helvetica, sans-serif" font-size="76" font-weight="760" letter-spacing="-4" fill="#f6f4ec">FieldLens</text>
+<text x="480" y="163" font-family="Inter, Segoe UI, Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="5.4" fill="#a7b6b4">VISUAL ANALYSIS</text>
+</svg>
