@@ -160,7 +160,14 @@ $('#file-input').addEventListener('change',event=>{loadFile(event.target.files[0
 $('#load-example').addEventListener('click',async()=>{try{const response=await fetch('./example-corn.jpg');if(!response.ok)throw new Error();const blob=await response.blob();setModel('disease');loadFile(new File([blob],'sample.jpg',{type:'image/jpeg'}));}catch{toast('示例图片加载失败');}});
 $('#clear-image').addEventListener('click',event=>{event.stopPropagation();if(state.running){toast('请先停止当前检测');return;}if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.loadToken++;state.objectUrl=null;state.image=null;state.frame=null;state.detections=[];$('#image-stage').classList.add('hidden');$('#drop-inner').classList.remove('hidden');$('#run-detection').disabled=true;$('#media-tip').textContent='图片越清晰，识别效果通常越好';resetResult();});
 $('#run-detection').addEventListener('click',detect);
-$('#download-result').addEventListener('click',()=>{const a=document.createElement('a');a.download=`fieldlens-${new Date().toISOString().slice(0,10)}.png`;a.href=$('#preview-canvas').toDataURL('image/png');a.click();});
+$('#download-result').addEventListener('click',()=>{
+  $('#preview-canvas').toBlob(blob=>{
+    if(!blob){toast('图片生成失败，请重试');return;}
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.download=`fieldlens-${new Date().toISOString().slice(0,10)}.png`;a.href=url;
+    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  },'image/png');
+});
 $('#clear-history').addEventListener('click',()=>{if(confirm('确定清空此设备上的所有识别记录吗？')){localStorage.removeItem(STORAGE_KEY);renderHistory();toast('记录已清空');}});
 $('#today').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});
 $('#year').textContent=new Date().getFullYear();setModel('disease');setView(location.hash.slice(1)||'detect');
