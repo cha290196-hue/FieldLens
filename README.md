@@ -34,9 +34,13 @@
 
 [Windows 安装程序](https://github.com/cha290196-hue/FieldLens/releases)
 
-下载并运行名为 **FieldLens-Setup-2.0.0-x64.exe** 的 NSIS 安装程序。支持安装目录选择、桌面快捷方式和卸载。Windows 10/11 x64。
+下载并运行名为 **FieldLens-Setup-2.1.0-x64.exe** 的 NSIS 安装程序。支持安装目录选择、桌面快捷方式和卸载。Windows 10/11 x64。
 
 安装程序不包含模型权重。首次调用某模型时下载对应 ONNX 文件，并检查 SHA-256；后续使用缓存。下载完成后可在离线状态使用已缓存的模型。安装程序未进行商业代码签名，Windows 可能显示 SmartScreen 提示。
+
+![Windows 桌面工作台的实际分类结果](assets/desktop-workbench.jpg)
+
+桌面版提供图像队列、可缩放画布、独立分析面板、模型中心和本地历史记录。
 
 ## 模型与数据集
 

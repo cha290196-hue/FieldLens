@@ -4,9 +4,13 @@ on:
     branches:
       - main
       - refactor/web-desktop-20261103
+      - feature/native-desktop-ui-20261104
     paths:
       - 'dist/**'
       - 'desktop/**'
+      - 'desktop-ui/**'
+      - 'scripts/smoke_desktop_ui.py'
+      - 'scripts/smoke_desktop_inference.py'
       - 'scripts/make_icon.py'
       - 'scripts/prepare-runtime.js'
       - 'tests/**'
@@ -16,7 +20,58 @@ on:
 permissions:
   contents: write
 jobs:
+  ui-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chromium UI test
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Verify desktop interface
+        run: python scripts/smoke_desktop_ui.py
+      - name: Upload desktop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FieldLens-Desktop-UI-Screenshots
+          path: desktop-ui-check
+          if-no-files-found: ignore
+          retention-days: 30
+  model-check:
+    needs: ui-check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare browser runtime
+        run: |
+          npm install --no-package-lock
+          npm run prepare-runtime
+      - name: Install browser
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Run desktop classifier
+        run: python scripts/smoke_desktop_inference.py
+      - name: Upload model test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FieldLens-Desktop-Model-Test
+          path: desktop-inference-check/*.png
+          if-no-files-found: ignore
+          retention-days: 30
   windows-x64:
+    needs: [ui-check, model-check]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,20 +96,30 @@ jobs:
       - name: Check installer
         shell: pwsh
         run: |
-          if (!(Test-Path "release/FieldLens-Setup-2.0.0-x64.exe")) { throw "Installer not found" }
-          Get-Item "release/FieldLens-Setup-2.0.0-x64.exe" | Select-Object Name,Length
+          if (!(Test-Path "release/FieldLens-Setup-2.1.0-x64.exe")) { throw "Installer not found" }
+          Get-Item "release/FieldLens-Setup-2.1.0-x64.exe" | Select-Object Name,Length
+      - name: Test NSIS silent installation
+        shell: pwsh
+        run: |
+          $installer = (Resolve-Path "release/FieldLens-Setup-2.1.0-x64.exe").Path
+          $target = Join-Path $env:RUNNER_TEMP "FieldLensNativeInstall"
+          $process = Start-Process -FilePath $installer -ArgumentList @("/S", "/D=$target") -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "NSIS installation failed: $($process.ExitCode)" }
+          $app = Join-Path $target "FieldLens.exe"
+          if (!(Test-Path $app)) { throw "Installed FieldLens.exe missing" }
+          Get-Item $app | Select-Object Name,Length
       - uses: actions/upload-artifact@v4
         with:
           name: FieldLens-Windows-Installer
-          path: release/FieldLens-Setup-2.0.0-x64.exe
+          path: release/FieldLens-Setup-2.1.0-x64.exe
           if-no-files-found: error
           retention-days: 30
       - name: Publish release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: desktop-v2.0.0
-          name: FieldLens Desktop 2.0.0
+          tag_name: desktop-v2.1.0
+          name: FieldLens Desktop 2.1.0
           body: Windows x64 NSIS 安装程序，模型首次使用时下载并校验 SHA-256。
-          files: release/FieldLens-Setup-2.0.0-x64.exe
+          files: release/FieldLens-Setup-2.1.0-x64.exe
           fail_on_unmatched_files: true

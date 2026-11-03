@@ -1,6 +1,6 @@
 {
   "name": "fieldlens",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Local crop image classification and pest detection",
   "type": "module",
@@ -22,7 +22,9 @@
     "appId": "app.fieldlens.desktop",
     "productName": "FieldLens",
     "copyright": "FieldLens",
-    "directories": { "output": "release" },
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/index.html",
       "dist/style.css",
@@ -31,6 +33,7 @@
       "dist/example-corn.jpg",
       "dist/favicon.svg",
       "dist/mascot.webp",
+      "desktop-ui/**",
       "dist/runtime/**",
       "desktop/**",
       "package.json"
@@ -38,8 +41,10 @@
     "asar": true,
     "win": {
       "icon": "build/icon.ico",
-      "target": [ "nsis" ],
-      "artifactName": "FieldLens-Setup-2.0.0-x64.exe"
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "FieldLens-Setup-2.1.0-x64.exe"
     },
     "nsis": {
       "oneClick": false,
