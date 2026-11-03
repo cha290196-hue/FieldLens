@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="520" viewBox="0 0 1600 520">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eef5e9"/><stop offset=".55" stop-color="#f8faf4"/><stop offset="1" stop-color="#e6f0e1"/></linearGradient><linearGradient id="leaf" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#a4c69a"/><stop offset="1" stop-color="#6c9a6c"/></linearGradient></defs>
+<rect width="1600" height="520" rx="20" fill="url(#bg)"/>
+<circle cx="1330" cy="250" r="215" fill="none" stroke="#d3e5cb" stroke-width="2"/><circle cx="1330" cy="250" r="168" fill="none" stroke="#dbead5" stroke-width="2"/>
+<path d="M1130 391c14-111 89-202 236-257-27 125-107 211-236 257Z" fill="url(#leaf)" opacity=".9"/><path d="M1136 381c72-89 140-161 223-236" fill="none" stroke="#d7ebd0" stroke-width="5"/><path d="M1196 311c21 1 45-1 68-7m-26-46c20 0 38-3 55-8" fill="none" stroke="#d7ebd0" stroke-width="3" opacity=".7"/>
+<rect x="88" y="81" width="46" height="46" rx="14" fill="#315a40"/><path d="M100 115c3-14 10-20 22-22-1 12-8 20-18 19m-4 3c4-7 8-11 16-16" stroke="#e8f4e2" stroke-width="2" fill="none" stroke-linecap="round"/>
+<text x="150" y="111" fill="#315a40" font-family="Georgia,serif" font-size="29" font-weight="700">FieldLens<tspan fill="#95b58d">.</tspan></text>
+<text x="90" y="206" fill="#91aa91" font-family="sans-serif" font-size="16" letter-spacing="5">A CLOSER LOOK AT PLANT HEALTH</text>
+<text x="88" y="287" fill="#263e2d" font-family="sans-serif" font-size="62" font-weight="700">看见作物的健康信号<tspan fill="#95b58d">。</tspan></text>
+<text x="92" y="337" fill="#849a82" font-family="sans-serif" font-size="19" letter-spacing="1">轻盈、直观的病虫害识别工作台</text>
+<rect x="90" y="390" width="155" height="41" rx="20" fill="#315a40"/><text x="118" y="417" fill="#fff" font-family="sans-serif" font-size="14">FIELDLENS  /  01</text>
+<text x="90" y="480" fill="#aabda5" font-family="sans-serif" font-size="13" letter-spacing="3">OBSERVE    ·    UNDERSTAND    ·    GROW</text>
+</svg>
