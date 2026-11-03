@@ -27,6 +27,23 @@ The first [12-epoch CPU training run](https://github.com/cha290196-hue/FieldLens
 
 [Download training curves, test plots, best.pt and the data manifest from GitHub Actions](https://github.com/cha290196-hue/FieldLens/actions/runs/41634530999/artifacts/13229953262).
 
+## Second candidate: continued training (2026-11-03)
+
+The [continued 18-epoch training run](https://github.com/cha290196-hue/FieldLens/actions/runs/41636591872) started from the first specialist's SHA-256-verified best.pt checkpoint and used the **same** 226 TRAIN, 48 VAL and 26 TEST samples, with the same audited duplicates.
+
+| Metric | First 12-epoch specialist | Continued 18-epoch specialist |
+| --- | ---: | ---: |
+| mAP@0.5 | 65.77% | **77.71%** |
+| mAP@0.5:0.95 | 30.03% | **42.87%** |
+| Precision | 37.82% | **58.85%** |
+| Recall | 86.11% | 75.67% |
+
+- Second candidate SHA-256: `b34094b3d93f61837ed7df22c213729f6b8c0200a602aa0baa2a9858a590b6b1`
+- First checkpoint SHA-256 verified as `c12e6fc4e2e195bfcbd57db6ddb7a39fc86978e4370a9b4a15f8a0c7fdd48aef`
+- [Second run artifacts: model, graphs, confusion matrix and manifest](https://github.com/cha290196-hue/FieldLens/actions/runs/41636591872/artifacts/13230719929)
+
+**90% mAP@0.5 was not reached.** The reported score is on 26 publicly available TEST images for a *three-class maize specialist only*. Reusing this TEST set to compare iterations can introduce selection bias, and it is not a new unseen holdout. These numbers do **not** validate the online FieldLens model across 28 disease classes, nor its 102 pest classes. Do not claim generalized 90% accuracy. Precision/recall change indicates a real trade-off, not unanimous improvement.
+
 ## Implemented improvements
 
 1. A separate `maize_experiment.py` workflow downloads **only bounded PlantDoc subsets**, not the full dataset.
