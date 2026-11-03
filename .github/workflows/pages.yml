@@ -1,54 +1,66 @@
-name: Publish demo
-
+name: Web demo
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+      - refactor/web-desktop-20261103
     paths:
       - 'dist/**'
+      - 'scripts/prepare_models.py'
+      - 'scripts/prepare-runtime.js'
+      - 'scripts/export_models.py'
+      - 'tests/**'
+      - 'package.json'
       - '.github/workflows/pages.yml'
-
+  workflow_dispatch:
 permissions:
   contents: read
-
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: npm install --no-package-lock --ignore-scripts
-      - run: npm test
-      - run: npm run prepare-runtime
-      - run: pip install torch==2.6.0 torchvision==0.21.0 'numpy<2.3' ultralytics==8.3.120 onnx==1.17.0
-      - name: Download model files
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install Node dependencies
+        run: npm install --no-package-lock
+      - name: Unit tests
+        run: npm test
+      - name: Prepare inference runtime
+        run: npm run prepare-runtime
+      - name: Install ONNX export dependencies
+        run: pip install torch==2.6.0 torchvision==0.21.0 'numpy<2.3' ultralytics==8.3.120 onnx==1.17.0
+      - name: Prepare browser weights
+        run: python scripts/prepare_models.py
+      - name: Verify model assets
         run: |
-          mkdir -p /tmp/fieldlens-weights
-          gh release download model-assets --pattern disease.pt --pattern pest.pt --dir /tmp/fieldlens-weights
-          echo 'd507f693b2ff1b8e0036f9b84fa9c6068d5931b40da720abf5d62d8833dd7281  /tmp/fieldlens-weights/disease.pt' | sha256sum --check
-          echo '810f0df179aec54f5d9762a11df4a147ff87ef79ca46649151914eeed260237f  /tmp/fieldlens-weights/pest.pt' | sha256sum --check
-      - name: Export browser models
-        run: |
-          mkdir -p "$RUNNER_TEMP/fieldlens-home"
-          env -i PATH="$PATH" HOME="$RUNNER_TEMP/fieldlens-home" PYTHONNOUSERSITE=1 python scripts/export_models.py --disease /tmp/fieldlens-weights/disease.pt --pest /tmp/fieldlens-weights/pest.pt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for key, count in [('disease', 38), ('pest', 102)]:
+              meta = json.loads(Path('dist/models/'+key+'.json').read_text())
+              assert len(meta['labels']) == count
+              assert Path('dist/models/'+key+'.onnx').stat().st_size > 15_000_000
+          assert Path('dist/runtime/ort.webgpu.min.mjs').exists()
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: dist
+          retention-days: 7
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
         with:
           path: dist
   deploy:
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
