@@ -31,6 +31,7 @@
       "dist/example-corn.jpg",
       "dist/favicon.svg",
       "dist/mascot.webp",
+      "desktop-ui/**",
       "dist/runtime/**",
       "desktop/**",
       "package.json"

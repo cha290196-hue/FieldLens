@@ -1,6 +1,6 @@
 'use strict';
 
-const {app,BrowserWindow,ipcMain,shell} = require('electron');
+const {app,BrowserWindow,ipcMain} = require('electron');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
@@ -8,7 +8,8 @@ const http = require('node:http');
 const https = require('node:https');
 const crypto = require('node:crypto');
 
-const DIST=path.join(__dirname,'..','dist');
+const DIST=path.resolve(__dirname,'..','dist');
+const DESKTOP_UI=path.resolve(__dirname,'..','desktop-ui');
 const HOST='127.0.0.1';
 const PAGES='https://cha290196-hue.github.io/FieldLens/models/';
 const INDIA_META='https://raw.githubusercontent.com/Vatsal2008/AgriSmart-AI/main/models/models.json';
@@ -148,7 +149,7 @@ function sendFile(res,file){
   fs.stat(file,(error,stat)=>{
     if(error||!stat.isFile()){res.writeHead(404);res.end('Not found');return;}
     const ext=path.extname(file).toLowerCase();
-    const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.json':'application/json','.onnx':'application/octet-stream','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml'};
+    const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.json':'application/json','.onnx':'application/octet-stream','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp'};
     res.writeHead(200,{'Content-Type':types[ext]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
     fs.createReadStream(file).pipe(res);
   });
@@ -157,19 +158,26 @@ function handler(req,res){
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
   let pathname;
   try{pathname=decodeURIComponent(new URL(req.url,'http://'+HOST).pathname);}catch{res.writeHead(400);res.end();return;}
-  if(pathname==='/')pathname='/index.html';
+  if(pathname==='/')pathname='/desktop-ui/index.html';
   if(pathname.startsWith('/cache/')){
     const name=pathname.slice('/cache/'.length);
     if(!['disease.onnx','pest.onnx'].includes(name)){res.writeHead(404);res.end();return;}
     sendFile(res,path.join(modelDir(),name));return;
   }
-  const file=path.resolve(DIST,'.'+pathname);
-  if(!file.startsWith(DIST+path.sep)){res.writeHead(403);res.end();return;}
+  let root,relative;
+  if(pathname.startsWith('/desktop-ui/')){
+    root=DESKTOP_UI;relative=pathname.slice('/desktop-ui/'.length);
+  }else if(pathname.startsWith('/dist/')){
+    root=DIST;relative=pathname.slice('/dist/'.length);
+  }else{res.writeHead(404);res.end('Not found');return;}
+  const file=path.resolve(root,relative);
+  if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
   sendFile(res,file);
 }
 function openWindow(){
   mainWindow=new BrowserWindow({
-    width:1440,height:920,minWidth:930,minHeight:680,
+    width:1580,height:970,minWidth:950,minHeight:710,
+    frame:false,
     backgroundColor:'#f7f7f4',
     autoHideMenuBar:true,
     show:false,
@@ -179,7 +187,7 @@ function openWindow(){
     }
   });
   const origin='http://'+HOST+':'+serverPort;
-  mainWindow.loadURL(origin+'/?desktop=1');
+  mainWindow.loadURL(origin+'/desktop-ui/index.html');
   mainWindow.once('ready-to-show',()=>mainWindow.show());
   mainWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   mainWindow.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith(origin+'/'))event.preventDefault();});
@@ -191,6 +199,25 @@ app.whenReady().then(async()=>{
   serverPort=server.address().port;
   ipcMain.handle('model:metadata',(_event,key)=>metadata(key));
   ipcMain.handle('model:ensure',(_event,key)=>ensureModel(key));
+  ipcMain.handle('model:status',async(_event,key)=>{
+    allowModel(key);
+    const file=path.join(modelDir(),key+'.onnx');
+    const stat=await fsp.stat(file).catch(()=>null);
+    if(!stat?.isFile())return {cached:false,size:0};
+    const config=await metadata(key).catch(()=>null);
+    const sha=config?.sha256||(key==='disease'?INDIA_SHA:null);
+    const cached=Boolean(sha&&await digest(file)===sha);
+    return {cached,size:stat.size};
+  });
+  ipcMain.handle('runtime:info',()=>({platform:process.platform==='win32'?'Windows':process.platform,arch:process.arch}));
+  ipcMain.handle('window:control',(_event,action)=>{
+    if(!mainWindow||mainWindow.isDestroyed())return false;
+    if(action==='minimize')mainWindow.minimize();
+    else if(action==='maximize'){if(mainWindow.isMaximized())mainWindow.unmaximize();else mainWindow.maximize();}
+    else if(action==='close')mainWindow.close();
+    else return false;
+    return true;
+  });
   openWindow();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)openWindow();});
 }).catch(error=>{console.error('Startup failed:',error);app.quit();});
