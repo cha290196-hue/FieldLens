@@ -135,10 +135,26 @@ def make_dataset(root: Path, max_train: int, seed: int, workers: int):
         raise RuntimeError(f"Dataset integrity failure: {len(errors)} failed files, {len(errors_on_test)} in TEST")
     train_files = [item for item in done if item["partition"] in ("train", "val")]
     test_files = [item for item in done if item["partition"] == "test"]
-    train_sha = {item["raw_sha256"] for item in train_files}
     test_sha = {item["raw_sha256"] for item in test_files}
-    if train_sha & test_sha:
-        raise RuntimeError("Leakage: TRAIN and TEST have identical image bytes")
+    leaked = [item for item in train_files if item["raw_sha256"] in test_sha]
+    removed = []
+    # Keep the full official TEST set. Remove offending TRAIN/VAL copies only.
+    # Also ensure exact images cannot occur on both internal TRAIN and VAL.
+    seen_internal = {}
+    for item in sorted(train_files, key=lambda x: (x["partition"] != "val", x["filename"])):
+        sha = item["raw_sha256"]
+        if sha in test_sha or sha in seen_internal:
+            removed.append({"filename": item["filename"], "partition": item["partition"],
+                            "sha256": sha, "reason": "official_test_overlap" if sha in test_sha else "train_val_duplicate"})
+            target = hashlib.sha256(f'TRAIN/{item["filename"]}'.encode()).hexdigest()[:20]
+            (root / "images" / item["partition"] / (target + ".jpg")).unlink(missing_ok=True)
+            (root / "labels" / item["partition"] / (target + ".txt")).unlink(missing_ok=True)
+        else:
+            seen_internal[sha] = item["partition"]
+    excluded = {(item["partition"], item["filename"]) for item in removed}
+    done = [item for item in done if (item["partition"], item["filename"]) not in excluded]
+    train_sha = {item["raw_sha256"] for item in done if item["partition"] in ("train", "val")}
+    assert not train_sha.intersection(test_sha), "TRAIN/TEST leakage after filtering"
     for folder in ["train", "val", "test"]:
         if sum(x["partition"] == folder for x in done) < 3:
             raise RuntimeError(f"Too few samples in {folder}")
@@ -153,9 +169,11 @@ def make_dataset(root: Path, max_train: int, seed: int, workers: int):
               "seed": seed, "max_train": max_train, "classes": OUTPUT_NAMES,
               "partitions": dict(Counter(x["partition"] for x in done)),
               "failed_non_test_files": errors,
+              "excluded_leakage_files": removed,
+              "exact_duplicate_train_test_exclusions": sum(x["reason"]=="official_test_overlap" for x in removed),
               "annotation_size_inconsistencies": sum(x["annotation_dimensions_inconsistent"] for x in done),
               "images": sorted(done, key=lambda x: (x["partition"], x["filename"])),
-              "exact_duplicate_train_test_count": len(train_sha & test_sha)}
+              "exact_duplicate_train_test_count_after_filter": len(train_sha & test_sha)}
     (root / "dataset-manifest.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     config = {"path": str(root.resolve()), "train": "images/train",
               "val": "images/val", "test": "images/test", "names": OUTPUT_NAMES}
@@ -220,8 +238,8 @@ def main():
                     "Only maize blight/rust/gray leaf spot; not a drop-in replacement for 28 classes.",
                     "TEST set is a small publicly known benchmark; cannot establish 90% general-field accuracy.",
                     "Class names and some annotations may be ambiguous; perform agronomist validation.",
-                    "Training/validation/test have disjoint filenames and exact image hashes.",
-                    "The official public dataset may contain near duplicates; exact-hash check is not a perceptual dedup."]}
+                    "Duplicate official TRAIN photos are removed when their exact bytes match TEST photos.",
+                    "The original public dataset may contain near duplicates; exact-hash check is not a perceptual dedup."]}
     summary["baseline"] = metrics_record(baseline, baseline_config, out, args.device, "baseline")
     del baseline
 
