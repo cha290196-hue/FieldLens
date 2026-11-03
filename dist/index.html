@@ -3,86 +3,134 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f7f1">
-  <meta name="description" content="轻盈、直观的作物病虫害识别工作台。">
-  <title>FieldLens · 看见作物的健康信号</title>
+  <meta name="theme-color" content="#f7f7f4">
+  <meta name="description" content="FieldLens 作物病害分类与农业害虫检测">
+  <title>FieldLens — 作物检测工作台</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
-    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H6a3 3 0 0 0-3 3v2m13-5h2a3 3 0 0 1 3 3v2M3 16v2a3 3 0 0 0 3 3h2m13-5v2a3 3 0 0 1-3 3h-2M3 12h18"/><circle cx="12" cy="12" r="3"/></symbol>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H6a3 3 0 0 0-3 3v2m13-5h2a3 3 0 0 1 3 3v2M3 16v2a3 3 0 0 0 3 3h2m13-5v2a3 3 0 0 1-3 3h-2"/><path d="M5 12h14"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
     <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
-    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5c0-1 1-1.5 2-1.5h4c1 0 2 .5 2 1.5V20c0-1-1-1.5-2-1.5H6c-1 0-2 .5-2 1.5V5.5Zm16 0c0-1-1-1.5-2-1.5h-4c-1 0-2 .5-2 1.5V20c0-1 1-1.5 2-1.5h4c1 0 2 .5 2 1.5V5.5Z"/></symbol>
-    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></symbol>
-    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 3 3 3-4 5 6"/></symbol>
-    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-5-5 5 5-5 5"/></symbol>
-    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 18v2h16v-2"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></symbol>
-    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C10 4 5 7 5 13a6 6 0 0 0 6 6c6 0 9-5 9-15ZM4 20c2-5 5-8 11-11"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 18v2h16v-2"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 3v7m4-7v7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 3 3 3-4 5 6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 4 9 8 11 4-2 8-6 8-11V5l-8-3Z"/><path d="m8 12 3 3 5-6"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   </svg>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand" href="#detect" aria-label="FieldLens 首页">
-        <span class="brand-mark"><svg><use href="#i-leaf"/></svg></span>
-        <span><strong>FieldLens<span class="brand-dot">.</span></strong><small>作物健康识别工作台</small></span>
+
+  <div class="shell">
+    <aside class="rail" id="rail">
+      <a class="brand" href="#inspect" aria-label="FieldLens">
+        <span class="brand-sign"><span></span><span></span><span></span><span></span></span>
+        <span class="brand-name">FieldLens<small>VISUAL ANALYSIS</small></span>
       </a>
-      <div class="nav-caption">WORKSPACE <span>工作空间</span></div>
-      <nav class="side-nav" aria-label="主导航">
-        <button class="nav-item active" data-view="detect"><svg><use href="#i-scan"/></svg><span>智能检测</span><b>01</b></button>
-        <button class="nav-item" data-view="history"><svg><use href="#i-clock"/></svg><span>识别记录</span></button>
-        <button class="nav-item" data-view="models"><svg><use href="#i-layers"/></svg><span>模型中心</span></button>
-        <button class="nav-item" data-view="guide"><svg><use href="#i-book"/></svg><span>使用指南</span></button>
+      <div class="rail-label">工作空间 <span>WORKSPACE</span></div>
+      <nav aria-label="主导航" class="nav">
+        <button class="nav-item active" data-view="inspect"><svg><use href="#i-scan"/></svg><span>识别分析</span><span class="nav-index">01</span></button>
+        <button class="nav-item" data-view="records"><svg><use href="#i-clock"/></svg><span>历史记录</span></button>
+        <button class="nav-item" data-view="models"><svg><use href="#i-layers"/></svg><span>模型信息</span></button>
+        <button class="nav-item" data-view="about"><svg><use href="#i-info"/></svg><span>使用说明</span></button>
       </nav>
-      <div class="sidebar-bottom">
-        <div class="sidebar-note"><div class="note-icon"><svg><use href="#i-leaf"/></svg></div><strong>专注每一片叶子</strong><p>用视觉识别，捕捉作物的健康信号。</p><span>FIELD NOTES&nbsp; / &nbsp;01</span></div>
-        <div class="sidebar-meta"><span><i></i> 本地工作空间</span><span>v1.0</span></div>
+      <div class="rail-fill"></div>
+      <div class="rail-status">
+        <div class="rail-status-head"><span class="pulse"></span><strong id="rail-runtime">本地推理</strong></div>
+        <p>图片在当前设备处理。首次使用需要加载模型文件。</p>
       </div>
+      <div class="rail-version"><span>FIELDLENS</span><span>02 / 2026</span></div>
     </aside>
-    <main class="main">
+
+    <div class="workspace">
       <header class="topbar">
-        <div class="top-left"><button class="mobile-menu icon-button" id="menu-button" aria-label="打开菜单"><svg><use href="#i-menu"/></svg></button><span class="top-crumb">工作空间</span><span class="crumb-divider">/</span><strong id="breadcrumb">智能检测</strong></div>
-        <div class="top-right"><span class="local-badge"><i></i> 浏览器本地运行</span><span class="top-date" id="today"></span><span class="user-avatar">F</span></div>
+        <div class="topbar-path"><button class="icon-button menu-button" id="menu-button" aria-label="菜单"><svg><use href="#i-menu"/></svg></button><span>工作空间</span><b>/</b><strong id="page-name">识别分析</strong></div>
+        <div class="topbar-actions"><span class="key-hint">Ctrl + O <span>选择文件</span></span><span class="runtime-badge"><i></i><span id="runtime-label">BROWSER / LOCAL</span></span></div>
       </header>
-      <div class="content">
-        <section class="view active" id="view-detect" aria-labelledby="page-title">
-          <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> FIELDLENS / PLANT HEALTH</div><h1 id="page-title">看见作物的<span>健康信号</span><span class="title-period">.</span></h1><p>一张图片，开启一次细致的田间观察。</p></div><div class="heading-label"><span>PLANT HEALTH</span><strong>从观察开始</strong></div></div>
-          <div class="feature-strip"><span class="feature-kicker">F</span><div><strong>更轻盈的病虫害识别体验</strong><span>选择识别方向，上传图片，结果即刻呈现。</span></div><span class="feature-end">MADE FOR FIELD WORK&nbsp; ↗</span></div>
-          <div class="work-grid">
-            <div class="left-column">
-              <section class="card input-card" aria-labelledby="upload-title">
-                <div class="card-heading"><div><div class="section-kicker"><span>01</span> &nbsp; INPUT</div><h2 id="upload-title">选择图片或视频</h2><p>支持常见图片及 MP4、WEBM 视频</p></div><span class="card-tag">VISUAL ANALYSIS</span></div>
-                <div class="model-picker"><div><div class="field-label">识别方向 <span>MODEL</span></div><div class="model-options" role="group" aria-label="识别方向"><button class="model-option active" data-model="disease"><span class="option-icon leaf-bg"><svg><use href="#i-leaf"/></svg></span><span><strong>作物病害</strong><small>叶片病害识别</small></span><i class="radio-dot"></i></button><button class="model-option" data-model="pest"><span class="option-icon pest-bg">✳</span><span><strong>农田虫害</strong><small>害虫目标检测</small></span><i class="radio-dot"></i></button></div></div></div>
-                <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="选择图片或拖放到此处">
-                  <div class="drop-inner" id="drop-inner"><div class="upload-icon"><svg><use href="#i-upload"/></svg></div><strong>拖放图片或视频到这里</strong><p>或 <span>点击选择文件</span></p><div class="file-hint">JPG · PNG · WEBP · MP4 · WEBM &nbsp; / &nbsp; 最大 100 MB</div></div>
-                  <div class="image-stage hidden" id="image-stage"><canvas id="preview-canvas" aria-label="待检测图片与识别结果"></canvas><button id="clear-image" class="clear-image" type="button" aria-label="移除图片"><svg><use href="#i-x"/></svg></button></div>
-                </div>
-                <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden>
-                <div class="upload-actions"><div class="upload-tip"><svg><use href="#i-info"/></svg><span id="media-tip">图片越清晰，识别效果通常越好</span></div><button class="primary-button" id="run-detection" disabled><span>开始识别</span><svg><use href="#i-arrow"/></svg></button></div>
-                <div class="sample-line"><button class="sample-button" id="load-example"><img src="./example-corn.jpg" alt=""><span><strong>没有图片？试试示例</strong><small>玉米叶片 · 合成示意图</small></span><svg><use href="#i-arrow"/></svg></button></div>
-              </section>
-              <section class="process-row" aria-label="使用步骤"><div class="process-item"><span class="step-no">01</span><div><strong>选择方向</strong><small>病害 / 虫害</small></div></div><span class="process-line"></span><div class="process-item"><span class="step-no">02</span><div><strong>上传文件</strong><small>本地安全分析</small></div></div><span class="process-line"></span><div class="process-item"><span class="step-no">03</span><div><strong>查看结果</strong><small>定位识别目标</small></div></div></section>
+
+      <main class="page">
+        <section class="view active" id="view-inspect" aria-labelledby="page-title">
+          <div class="heading-row">
+            <div><div class="eyebrow"><span class="eyebrow-mark"></span> IMAGE ANALYSIS / 01</div><h1 id="page-title">作物健康分析<span class="accent-dot">.</span></h1><p class="page-subtitle">选择识别类型并上传图片。结果显示在右侧面板。</p></div>
+            <div class="heading-date"><span id="date-text"></span><small>FIELDLENS / WORKSPACE</small></div>
+          </div>
+
+          <div class="overview">
+            <div class="overview-grain"></div>
+            <div class="overview-copy">
+              <div class="overview-tag"><span class="overview-light"></span> VISION / WORKSPACE <span>·</span> LOCAL INFERENCE</div>
+              <h2>Image intelligence<br><em>for crop analysis.</em></h2>
+              <p>病害分类与虫害定位分开运行。所有结果均附带置信度与推理耗时。</p>
+              <div class="overview-line"><span class="tiny-square"></span> 当前模型 <strong id="overview-model">作物病害</strong><span class="overview-arrow">↗</span></div>
             </div>
-            <div class="right-column">
-              <section class="card result-card" aria-labelledby="result-title"><div class="card-heading"><div><div class="section-kicker"><span>02</span> &nbsp; RESULT</div><h2 id="result-title">识别结果</h2><p>分析结果将显示在这里</p></div><span class="status-pill" id="result-state"><i></i> 等待识别</span></div>
-                <div class="result-empty" id="result-empty"><div class="empty-orbit"><span class="orbit-ring"></span><span class="empty-leaf"><svg><use href="#i-scan"/></svg></span><span class="orbit-dot"></span></div><strong>准备好，开始观察</strong><p>上传一张图片并开始识别<br>检测到的目标将在这里呈现</p></div>
-                <div id="result-content" class="result-content hidden"><div class="result-summary"><div><span>本次识别到</span><strong><b id="result-count">0</b><em>个目标</em></strong></div><div class="result-stat"><span>推理耗时</span><strong id="result-time">—</strong></div></div><div class="result-list-head"><strong>识别详情</strong><span>置信度</span></div><div id="result-list" class="result-list"></div><div class="result-footnote" id="result-advice">识别结果仅用于辅助观察；未检出不代表绝对健康。</div><button id="download-result" class="secondary-button"><svg><use href="#i-down"/></svg> 下载标注图片</button></div>
-              </section>
-              <section class="insight-card"><div class="insight-top"><span class="mini-leaf">✳</span><span>FIELD TIP <i>/</i> 识别小贴士</span></div><strong>让每一次观察更清晰</strong><p>靠近拍摄主体，保持对焦清楚，尽量避免强烈反光和遮挡。</p><span class="insight-number">01 / 03</span></section>
+            <div class="overview-visual" aria-hidden="true">
+              <div class="orbital outer-orbit"></div><div class="orbital middle-orbit"></div><div class="orbital inner-orbit"></div>
+              <div class="specimen"><svg viewBox="0 0 220 220"><path d="M112 185C82 141 78 81 149 34c-5 67-13 108-37 151Z" fill="#bdc4b5" opacity=".87"/><path d="M112 185c-1-61 10-108 37-151" stroke="#506358" stroke-width="2" fill="none"/><path d="M111 152 87 118M117 130l-24-21M126 102l-15-17M114 151l20-20M119 120l19-17M129 90l12-13" stroke="#506358" fill="none" opacity=".65"/></svg></div>
+              <span class="orbital-point p1"></span><span class="orbital-point p2"></span><div class="visual-index">FL / 02</div>
             </div>
           </div>
-          <div class="bottom-foot"><span>FIELDLENS &nbsp; © &nbsp; <span id="year"></span></span><span>让技术回到田间，回到每一次观察。</span><span>BUILT FOR GROWTH <b>✳</b></span></div>
+
+          <div class="section-row"><div><span class="section-num">01</span><h2>分析工作台</h2></div><span>ANALYSIS WORKBENCH</span></div>
+          <div class="workbench">
+            <div class="panel input-panel">
+              <div class="panel-head"><div><span class="panel-kicker">SOURCE / INPUT</span><h3>输入图片</h3></div><span class="head-side">JPG / PNG / WEBP / VIDEO</span></div>
+              <div class="field-group"><label class="field-label">识别类型 <span>MODE</span></label><div class="segmented" role="group" aria-label="识别类型"><button class="segment selected" data-model="disease"><span class="segment-symbol">◈</span><span><strong>病害分类</strong><small>图像级判断</small></span></button><button class="segment" data-model="pest"><span class="segment-symbol">⌖</span><span><strong>害虫检测</strong><small>目标位置与类别</small></span></button></div></div>
+              <div class="field-group crop-field" id="crop-field"><label class="field-label" for="crop-select">作物范围 <span>OPTIONAL</span></label><select id="crop-select"><option value="">自动判断</option></select></div>
+              <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="选择文件或拖放文件">
+                <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" hidden>
+                <div class="drop-intro" id="drop-intro"><span class="drop-symbol"><svg><use href="#i-upload"/></svg></span><strong>拖入图片或点击上传</strong><span>支持单张图片及视频帧识别</span><span class="drop-formats">PNG · JPG · WEBP · MP4 · WEBM</span></div>
+                <div class="preview hidden" id="preview"><canvas id="preview-canvas" aria-label="图片预览和检测标注"></canvas><div class="preview-overlay"><span id="file-name">image.jpg</span><button type="button" id="remove-file" title="移除文件" aria-label="移除文件"><svg><use href="#i-close"/></svg></button></div><div class="scan-line" id="scan-line"></div></div>
+              </div>
+              <div class="panel-actions"><button class="example-link" id="example-button"><img src="./example-corn.jpg" alt=""><span>使用示例图片 <small>合成图像</small></span><svg><use href="#i-arrow"/></svg></button><button class="run-button" id="run-button" disabled><span id="run-button-label">运行识别</span><svg><use href="#i-arrow"/></svg></button></div>
+              <div class="inline-status"><span class="inline-status-icon" id="status-dot"></span><span id="status-text">选择文件后可开始识别</span></div>
+            </div>
+
+            <div class="panel output-panel">
+              <div class="panel-head"><div><span class="panel-kicker">ANALYSIS / OUTPUT</span><h3>识别结果</h3></div><span class="output-state" id="output-state"><i></i> 待运行</span></div>
+              <div class="result-placeholder" id="result-placeholder"><div class="placeholder-art"><span class="placeholder-corner c1"></span><span class="placeholder-corner c2"></span><span class="placeholder-corner c3"></span><span class="placeholder-corner c4"></span><svg><use href="#i-image"/></svg><div class="placeholder-ring"></div></div><strong>等待分析</strong><p>识别结果、类别概率和用时将显示在这里。</p></div>
+              <div class="results hidden" id="results">
+                <div class="result-summary"><div><span>分析类型</span><strong id="result-type">—</strong></div><div><span>推理时间</span><strong id="result-ms">—</strong></div><div><span>运行后端</span><strong id="result-backend">—</strong></div></div>
+                <div class="result-row-title"><span id="results-title">识别类别</span><span>置信度</span></div>
+                <div id="result-list" class="result-list"></div>
+                <div class="result-notice" id="result-notice">结果只作图像筛查参考。</div>
+                <button class="export-button" id="export-button"><svg><use href="#i-download"/></svg><span>导出当前画面</span><svg class="export-arrow"><use href="#i-arrow"/></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lower-grid">
+            <div class="mini-panel"><div class="mini-no">01 / SOURCE</div><strong>本地文件</strong><p>文件仅在当前设备读取，识别过程不上传原图。</p></div>
+            <div class="mini-panel"><div class="mini-no">02 / INFERENCE</div><strong>独立模型</strong><p>病害使用图像分类；害虫使用目标检测与边界框。</p></div>
+            <div class="mini-panel"><div class="mini-no">03 / OUTPUT</div><strong>记录与导出</strong><p>分析摘要保存于本机，可导出当前标注画面。</p></div>
+          </div>
         </section>
-        <section class="view" id="view-history"><div class="page-heading sub-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> YOUR FIELD NOTES</div><h1>每一次<span>观察记录</span><span class="title-period">.</span></h1><p>记录保存在当前浏览器中，可随时回看。</p></div><button class="plain-button" id="clear-history"><svg><use href="#i-trash"/></svg> 清空记录</button></div><div class="card section-card"><div class="card-heading"><div><div class="section-kicker"><span>03</span> &nbsp; HISTORY</div><h2>最近识别</h2><p>仅显示当前设备上的记录</p></div><span class="card-tag" id="history-count">0 RECORDS</span></div><div id="history-list" class="history-list"></div><div id="history-empty" class="panel-empty"><span class="panel-empty-icon"><svg><use href="#i-clock"/></svg></span><strong>还没有识别记录</strong><p>完成第一次检测后，你的观察将保存在这里。</p><button class="text-action" data-go="detect">去识别 <svg><use href="#i-arrow"/></svg></button></div></div></section>
-        <section class="view" id="view-models"><div class="page-heading sub-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> MODEL LIBRARY</div><h1>认识我们的<span>识别模型</span><span class="title-period">.</span></h1><p>针对不同观察对象，选择合适的模型。</p></div></div><div class="model-card-grid"><article class="card model-detail"><span class="detail-icon leaf-bg"><svg><use href="#i-leaf"/></svg></span><div class="detail-top"><span>01 / DISEASE</span><i>目标检测</i></div><h2>作物病害识别</h2><p>支持玉米、番茄、水稻和茶叶的部分病害、虫害及健康状态。</p><div class="model-tags"><span>28 类目标</span><span>病害定位</span><span>本地推理</span></div><button class="text-action" data-select-model="disease">使用此模型 <svg><use href="#i-arrow"/></svg></button></article><article class="card model-detail"><span class="detail-icon pest-bg">✳</span><div class="detail-top"><span>02 / PEST</span><i>目标检测</i></div><h2>农田虫害识别</h2><p>识别图像中的害虫目标及类别，适合主体清晰的虫体图像。</p><div class="model-tags"><span>102 类目标</span><span>害虫识别</span><span>本地推理</span></div><button class="text-action" data-select-model="pest">使用此模型 <svg><use href="#i-arrow"/></svg></button></article></div><div class="subtle-note"><svg><use href="#i-info"/></svg>识别范围取决于模型支持的类别，实际效果会受到拍摄条件和场景差异影响。</div></section>
-        <section class="view" id="view-guide"><div class="page-heading sub-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> GET STARTED</div><h1>从这里开始<span>探索</span><span class="title-period">.</span></h1><p>只需三步，开始识别作物健康信号。</p></div></div><div class="card section-card guide-card"><div class="guide-row"><span>01</span><div><h3>选择识别方向</h3><p>病害适合支持作物的清晰照片；虫害适合虫体清晰的图片。</p></div></div><div class="guide-row"><span>02</span><div><h3>上传清晰的图片或视频</h3><p>支持 JPEG、PNG、WEBP、MP4 和 WEBM。首次使用模型时需要等待模型加载。</p></div></div><div class="guide-row"><span>03</span><div><h3>查看并保存结果</h3><p>识别后，可查看目标类别、置信度、推理耗时，并下载标注画面。</p></div></div><div class="guide-note">模型是辅助观察工具。请结合实际情况判断，遇到复杂情况可咨询专业人员。</div></div></section>
-      </div>
-    </main>
+
+        <section class="view" id="view-records">
+          <div class="eyebrow"><span class="eyebrow-mark"></span> ACTIVITY / 02</div><div class="inner-heading"><div><h1>历史记录<span class="accent-dot">.</span></h1><p class="page-subtitle">当前设备最近完成的分析摘要。</p></div><button id="clear-records" class="outline-button"><svg><use href="#i-trash"/></svg> 清空记录</button></div>
+          <div class="panel content-panel"><div class="panel-head"><div><span class="panel-kicker">LOCAL RECORDS</span><h3>识别记录</h3></div><span class="small-counter" id="record-count">0 条</span></div><div class="records-list" id="records-list"></div><div class="empty-panel" id="records-empty"><svg><use href="#i-clock"/></svg><strong>暂无记录</strong><p>完成一次分析后会显示在这里。</p></div></div>
+        </section>
+
+        <section class="view" id="view-models">
+          <div class="eyebrow"><span class="eyebrow-mark"></span> MODEL REGISTRY / 03</div><div class="inner-heading"><div><h1>模型信息<span class="accent-dot">.</span></h1><p class="page-subtitle">识别范围、模型任务及测试数据。</p></div></div>
+          <div class="model-grid"><article class="model-detail"><div class="model-number">MODEL / 01</div><div class="model-symbol">◈</div><h2>作物病害分类</h2><p id="disease-description">图像分类模型，输出作物与病害状态。不会生成病斑边界框。</p><div class="model-divider"></div><div class="model-line"><span>识别类别</span><strong id="disease-count">38</strong></div><div class="model-line"><span>输入尺寸</span><strong>224 × 224</strong></div><div class="model-line"><span>模型类型</span><strong>DINOv2</strong></div><button class="model-activate" data-use="disease">选择模型 <svg><use href="#i-arrow"/></svg></button></article>
+          <article class="model-detail"><div class="model-number">MODEL / 02</div><div class="model-symbol secondary-symbol">⌖</div><h2>农业害虫检测</h2><p>图像中的害虫目标定位与类别识别，检测范围对应 IP102。</p><div class="model-divider"></div><div class="model-line"><span>识别类别</span><strong>102</strong></div><div class="model-line"><span>输入尺寸</span><strong>640 × 640</strong></div><div class="model-line"><span>模型类型</span><strong>YOLO11s</strong></div><button class="model-activate" data-use="pest">选择模型 <svg><use href="#i-arrow"/></svg></button></article></div>
+          <div class="note-block"><svg><use href="#i-info"/></svg><p>分类准确率与目标检测 mAP 是不同指标。模型在独立来源的田间图像上可能有不同表现；请以实际数据集测试为准。</p></div>
+        </section>
+
+        <section class="view" id="view-about">
+          <div class="eyebrow"><span class="eyebrow-mark"></span> DOCUMENTATION / 04</div><div class="inner-heading"><div><h1>使用说明<span class="accent-dot">.</span></h1><p class="page-subtitle">文件格式、检测流程和结果解释。</p></div></div>
+          <div class="panel steps-panel"><div class="step-row"><span>01</span><div><h3>选择识别类型</h3><p>病害分类适合单叶照片。害虫检测适合目标虫体清晰的图片。</p></div></div><div class="step-row"><span>02</span><div><h3>添加图片或视频</h3><p>支持 JPG、PNG、WEBP、MP4、WEBM。视频选取当前帧作为一次分析输入。</p></div></div><div class="step-row"><span>03</span><div><h3>运行并检查结果</h3><p>首次使用需要下载模型。病害输出分类概率；虫害输出检测框与置信度。</p></div></div><div class="step-row"><span>04</span><div><h3>保存结果</h3><p>分析摘要保存在浏览器存储中。可将带标注的当前画面导出为 PNG。</p></div></div></div>
+          <div class="note-block"><svg><use href="#i-shield"/></svg><p>模型输出只用于辅助筛查。对于不支持的作物、模糊图片或多种病害并存的情况，应进一步核实。</p></div>
+        </section>
+
+        <footer class="footer"><span>FIELDLENS / 2026</span><span>视觉检测 · 本地推理</span><span id="footer-runtime">ONNX RUNTIME</span></footer>
+      </main>
+    </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="./app.js"></script>
