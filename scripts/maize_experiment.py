@@ -199,6 +199,8 @@ def main():
     p.add_argument("--baseline", type=Path, required=True)
     p.add_argument("--max-train", type=int, default=280)
     p.add_argument("--epochs", type=int, default=12)
+    p.add_argument("--initial-model", type=Path, default=None,
+                   help="Optional previously trained specialist checkpoint; must have same 3-class taxonomy")
     p.add_argument("--imgsz", type=int, default=512)
     p.add_argument("--batch", type=int, default=8)
     p.add_argument("--workers", type=int, default=6)
@@ -228,7 +230,8 @@ def main():
         "names": {int(k):str(v) for k,v in baseline.names.items()}},sort_keys=False), encoding="utf-8")
 
     summary = {"created_utc": datetime.now(timezone.utc).isoformat(),
-               "model": "yolo11n.pt (pretrained), specialist 3-class maize candidate",
+               "model": "YOLO11n specialist, 3 maize classes",
+               "initial_weight": str(args.initial_model) if args.initial_model else "yolo11n.pt",
                "epochs": args.epochs, "imgsz": args.imgsz, "batch": args.batch,
                "seed": args.seed, "baseline_sha256": weight_hash,
                "dataset_train_images": manifest["partitions"].get("train", 0),
@@ -243,10 +246,18 @@ def main():
     summary["baseline"] = metrics_record(baseline, baseline_config, out, args.device, "baseline")
     del baseline
 
-    candidate = YOLO("yolo11n.pt")
+    if args.initial_model is not None:
+        if not args.initial_model.is_file():
+            raise FileNotFoundError(args.initial_model)
+        summary["initial_weight_sha256"] = hashlib.sha256(args.initial_model.read_bytes()).hexdigest()
+        candidate = YOLO(str(args.initial_model.resolve()))
+        if [candidate.names[i] for i in range(3)] != list(OUTPUT_NAMES.values()) or len(candidate.names) != 3:
+            raise RuntimeError("Initial specialist weight class taxonomy mismatch")
+    else:
+        candidate = YOLO("yolo11n.pt")
     candidate.train(data=str(config), epochs=args.epochs, imgsz=args.imgsz,
                     batch=args.batch, workers=2, device=args.device,
-                    seed=args.seed, deterministic=True, patience=6,
+                    seed=args.seed, deterministic=True, patience=8,
                     mosaic=.5, mixup=0.0, degrees=8.0,
                     flipud=0.0, fliplr=0.5, optimizer="auto",
                     project=str(out), name="maize-train", exist_ok=True,
