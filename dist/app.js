@@ -1,173 +1,223 @@
-import {Detector} from './engine.js';
+import {InferenceEngine,labelFor} from './engine.js';
 
-const $=(selector,root=document)=>root.querySelector(selector);
-const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
-const STORAGE_KEY='fieldlens:history:v1';
-const navNames={detect:'智能检测',history:'识别记录',models:'模型中心',guide:'使用指南'};
-const state={view:'detect',model:'disease',image:null,frame:null,mediaType:'image',objectUrl:null,detections:[],running:false,stopRequested:false,lastResult:null,loadToken:0};
-let toastTimer;
-const detector=new Detector(message=>setStatus(message,'busy'));
+const el=id=>document.getElementById(id);
+const engine=new InferenceEngine(message=>setStatus(message,'busy'));
+const storageKey='fieldlens-records-v2';
+const state={model:'disease',source:null,mediaURL:null,file:null,result:null,busy:false};
+const viewNames={inspect:'识别分析',records:'历史记录',models:'模型信息',about:'使用说明'};
+const desktop=Boolean(globalThis.fieldlensDesktop);
+let toastTimer=null;
 
-function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3500);}
-function setStatus(message,type='idle'){
-  const el=$('#result-state');el.replaceChildren();const dot=document.createElement('i');
-  if(type==='busy')dot.style.background='#cfb375';
-  if(type==='error')dot.style.background='#d48c76';
-  el.append(dot,document.createTextNode(` ${message}`));
+function setStatus(message,tone='idle'){
+  el('status-text').textContent=message;
+  el('status-dot').className='inline-status-icon '+(tone==='busy'?'busy':tone==='ok'?'ok':'');
+}
+function toast(message){
+  const node=el('toast');node.textContent=message;node.classList.add('visible');
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>node.classList.remove('visible'),3300);
 }
 function setView(view){
-  if(!navNames[view])return;
-  state.view=view;$$('.view').forEach(el=>el.classList.toggle('active',el.id===`view-${view}`));
-  $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
-  $('#breadcrumb').textContent=navNames[view];$('#sidebar').classList.remove('open');
-  if(view==='history')renderHistory();
-  try{history.replaceState(null,'',`#${view}`);}catch{}
+  if(!viewNames[view])return;
+  document.querySelectorAll('.view').forEach(node=>node.classList.toggle('active',node.id==='view-'+view));
+  document.querySelectorAll('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view===view));
+  el('page-name').textContent=viewNames[view];
+  el('rail').classList.remove('open');
+  history.replaceState(null,'','#'+view);
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(view==='records')renderRecords();
 }
-function setModel(model){
-  if(state.running||!['disease','pest'].includes(model))return;
-  state.model=model;$$('.model-option').forEach(el=>{
-    const selected=el.dataset.model===model;el.classList.toggle('active',selected);el.setAttribute('aria-pressed',String(selected));
-  });
-  state.detections=[];state.lastResult=null;if(state.image)drawImage();resetResult();
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
+document.querySelectorAll('[data-use]').forEach(button=>button.addEventListener('click',()=>{chooseModel(button.dataset.use);setView('inspect');}));
+el('menu-button').addEventListener('click',()=>el('rail').classList.toggle('open'));
+document.addEventListener('click',event=>{if(window.innerWidth<930&&!event.target.closest('.rail')&&!event.target.closest('#menu-button'))el('rail').classList.remove('open');});
+
+function dateText(){
+  try{return new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',weekday:'long'}).format(new Date());}
+  catch{return '2026';}
 }
-function resetResult(){
-  $('#result-empty').classList.remove('hidden');$('#result-content').classList.add('hidden');
-  setStatus('等待识别');
+el('date-text').textContent=dateText();
+el('runtime-label').textContent=desktop?'WINDOWS / LOCAL':'BROWSER / LOCAL';
+el('footer-runtime').textContent=desktop?'ONNX RUNTIME · WINDOWS':'ONNX RUNTIME · WEB';
+el('rail-runtime').textContent=desktop?'Windows 本地推理':'浏览器本地推理';
+if(desktop){
+  el('disease-description').textContent='59 种作物、387 个作物及病害状态类别。图像分类，不提供病斑边界框。';
+  el('disease-count').textContent='387';
 }
-function createCanvasThumb(){
-  const source=$('#preview-canvas');const c=document.createElement('canvas');
-  const factor=Math.min(1,180/Math.max(source.width,source.height));
-  c.width=Math.max(1,Math.round(source.width*factor));c.height=Math.max(1,Math.round(source.height*factor));
-  c.getContext('2d').drawImage(source,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.72);
+function clearResult(){
+  state.result=null;
+  el('results').classList.add('hidden');
+  el('result-placeholder').classList.remove('hidden');
+  el('output-state').innerHTML='<i></i> 待运行';
 }
-function readHistory(){try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');return Array.isArray(data)?data:[];}catch{return [];}}
-function saveHistory(result){
+function chooseModel(key){
+  if(!['disease','pest'].includes(key)||state.busy)return;
+  state.model=key;
+  document.querySelectorAll('[data-model]').forEach(b=>b.classList.toggle('selected',b.dataset.model===key));
+  el('crop-field').classList.toggle('hidden',key==='pest');
+  el('overview-model').textContent=key==='disease'?'作物病害':'农业害虫';
+  clearResult();
+  drawPreview();
+  setStatus('已选择'+(key==='disease'?'病害分类':'害虫检测'));
+  if(key==='disease')loadCropOptions();
+}
+document.querySelectorAll('[data-model]').forEach(button=>button.addEventListener('click',()=>chooseModel(button.dataset.model)));
+
+async function loadCropOptions(){
   try{
-    const entries=readHistory();entries.unshift({id:crypto.randomUUID?.()||String(Date.now()),time:Date.now(),model:state.model,
-      count:result.detections.length,elapsed:Math.round(result.elapsed),labels:[...new Set(result.detections.map(d=>d.name))].slice(0,4),thumb:createCanvasThumb()});
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(entries.slice(0,30)));
-  }catch{toast('当前浏览器无法保存记录，识别结果仍可使用');}
-}
-function renderHistory(){
-  const list=$('#history-list'),empty=$('#history-empty'),entries=readHistory();list.replaceChildren();
-  empty.classList.toggle('hidden',entries.length>0);$('#history-count').textContent=`${entries.length} RECORDS`;
-  $('#clear-history').disabled=!entries.length;
-  entries.forEach(entry=>{
-    const row=document.createElement('div');row.className='history-entry';
-    const img=document.createElement('img');img.className='history-thumb';img.src=entry.thumb;img.alt='识别记录缩略图';
-    const text=document.createElement('div'),title=document.createElement('strong'),detail=document.createElement('small');
-    title.textContent=entry.labels.length?entry.labels.join('、'):'未检出目标';
-    detail.textContent=`${entry.model==='pest'?'农田虫害':'作物病害'} · ${new Date(entry.time).toLocaleString('zh-CN')}`;text.append(title,detail);
-    const count=document.createElement('span');count.textContent=`${entry.count} 个目标`;
-    const remove=document.createElement('button');remove.type='button';remove.setAttribute('aria-label','删除这条记录');
-    remove.innerHTML='<svg aria-hidden="true"><use href="#i-trash"></use></svg>';
-    remove.addEventListener('click',()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(readHistory().filter(x=>x.id!==entry.id)));renderHistory();});
-    row.append(img,text,count,remove);list.append(row);
-  });
-}
-function loadFile(file){
-  if(!file)return;
-  if(state.running){toast('请先停止当前检测');return;}
-  const imageTypes=['image/jpeg','image/png','image/webp'],videoTypes=['video/mp4','video/webm'];
-  if(!imageTypes.includes(file.type)&&!videoTypes.includes(file.type)){toast('请选择支持的图片或视频格式');return;}
-  if(file.size>100*1024*1024){toast('文件大小不能超过 100 MB');return;}
-  if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
-  const url=URL.createObjectURL(file),token=++state.loadToken,isVideo=videoTypes.includes(file.type);
-  const source=isVideo?document.createElement('video'):new Image();
-  const ready=()=>{
-    if(token!==state.loadToken){URL.revokeObjectURL(url);return;}
-    if(state.objectUrl&&state.objectUrl!==url)URL.revokeObjectURL(state.objectUrl);
-    state.image=source;state.frame=null;state.mediaType=isVideo?'video':'image';state.objectUrl=url;state.detections=[];state.lastResult=null;
-    $('#drop-inner').classList.add('hidden');$('#image-stage').classList.remove('hidden');
-    $('#run-detection').disabled=false;$('#media-tip').textContent=isVideo?'视频将逐帧分析，可随时停止':'图片越清晰，识别效果通常越好';drawImage();resetResult();
-  };
-  source.onerror=()=>{URL.revokeObjectURL(url);toast('文件无法读取，请尝试其他文件');};
-  if(isVideo){source.muted=true;source.playsInline=true;source.preload='auto';source.onloadeddata=ready;}
-  else source.onload=ready;
-  source.src=url;
-}
-function drawImage(){
-  if(!state.image)return;
-  const canvas=$('#preview-canvas'),source=state.frame||state.image,w=source.naturalWidth||source.videoWidth||source.width,h=source.naturalHeight||source.videoHeight||source.height;
-  const factor=Math.min(1,2400/Math.max(w,h));canvas.width=Math.max(1,Math.round(w*factor));canvas.height=Math.max(1,Math.round(h*factor));
-  const ctx=canvas.getContext('2d');ctx.drawImage(source,0,0,canvas.width,canvas.height);
-  const line=Math.max(2,Math.min(canvas.width,canvas.height)*.005),font=Math.max(13,Math.min(canvas.width,canvas.height)*.026);
-  ctx.lineWidth=line;ctx.textBaseline='top';ctx.font=`600 ${font}px system-ui, sans-serif`;
-  for(const d of state.detections){
-    const x=d.x1*factor,y=d.y1*factor,bw=(d.x2-d.x1)*factor,bh=(d.y2-d.y1)*factor;
-    ctx.strokeStyle='#9bea74';ctx.fillStyle='#9bea74';ctx.strokeRect(x,y,bw,bh);
-    const label=`${d.name} ${(d.score*100).toFixed(0)}%`,pad=font*.36,tw=Math.min(ctx.measureText(label).width+pad*2,canvas.width);
-    const top=Math.max(0,y-font-pad*2);ctx.fillRect(x,top,tw,font+pad*2);
-    ctx.fillStyle='#1b3b24';ctx.fillText(label,x+pad,top+pad,Math.max(0,tw-pad*2));
-  }
-}
-function renderResult(result){
-  $('#result-empty').classList.add('hidden');$('#result-content').classList.remove('hidden');
-  $('#result-count').textContent=result.detections.length;$('#result-time').textContent=`${Math.round(result.elapsed)} ms`;
-  const list=$('#result-list');list.replaceChildren();
-  if(!result.detections.length){const p=document.createElement('p');p.className='result-footnote';p.textContent='本次未检出目标，可以换一张图片或切换识别方向。';list.append(p);}
-  result.detections.slice(0,30).forEach(d=>{
-    const row=document.createElement('div');row.className='detection-item';
-    const dot=document.createElement('i');dot.className='dot';const label=document.createElement('strong');label.textContent=d.name;
-    const score=document.createElement('span');score.textContent=`${(d.score*100).toFixed(1)}%`;row.append(dot,label,score);list.append(row);
-  });
-  const concerns=result.detections.filter(d=>!/健康|healthy/i.test(d.name)).length;
-  $('#result-advice').textContent=concerns
-    ? `关注提示：发现 ${concerns} 个疑似异常目标，建议复查叶片或虫体；结果仅供辅助观察。`
-    : '未检出异常目标不代表绝对健康，请结合实地观察判断。';
-  setStatus('识别完成');
-}
-async function detect(){
-  if(!state.image)return;
-  if(state.running){if(state.mediaType==='video'){state.stopRequested=true;setStatus('正在停止…','busy');}return;}
-  state.running=true;state.stopRequested=false;$('#run-detection').disabled=state.mediaType!=='video';$('#run-detection span').textContent=state.mediaType==='video'?'停止检测':'正在识别';
-  try{
-    if(state.mediaType==='image'){
-      const result=await detector.run(state.image,state.model,.25);state.frame=null;state.detections=result.detections;state.lastResult=result;
-      drawImage();renderResult(result);saveHistory(result);
-    }else{
-      const video=state.image;
-      await detector.load(state.model);
-      if(state.stopRequested)return;
-      if(video.ended)video.currentTime=0;
-      await video.play();
-      while(!video.ended&&!state.stopRequested){
-        const frame=document.createElement('canvas');const factor=Math.min(1,1920/Math.max(video.videoWidth,video.videoHeight));
-        frame.width=Math.max(1,Math.round(video.videoWidth*factor));frame.height=Math.max(1,Math.round(video.videoHeight*factor));
-        frame.getContext('2d').drawImage(video,0,0,frame.width,frame.height);
-        const result=await detector.run(frame,state.model,.25);state.frame=frame;state.detections=result.detections;state.lastResult=result;
-        drawImage();renderResult(result);
-        await new Promise(resolve=>requestAnimationFrame(resolve));
-      }
-      video.pause();if(state.lastResult)saveHistory(state.lastResult);
-      setStatus(state.stopRequested?'已停止':'识别完成');
+    const info=await engine.metadata('disease');
+    const select=el('crop-select'),old=select.value;
+    const unique=new Map();
+    for(const raw of info.labels){
+      const name=String(raw);
+      const sep=name.includes('___')?'___':'::';
+      if(!name.includes(sep))continue;
+      const crop=name.split(sep)[0];
+      if(!unique.has(crop))unique.set(crop,labelFor(crop+'::healthy').split(' · ')[0]);
     }
-  }catch(e){console.error(e);setStatus('加载失败','error');toast(e?.message||'识别失败，请检查模型文件后重试');}
-  finally{if(state.mediaType==='video')state.image?.pause?.();state.running=false;state.stopRequested=false;$('#run-detection').disabled=!state.image;$('#run-detection span').textContent='开始识别';}
+    select.replaceChildren(new Option('自动判断',''));
+    for(const crop of [...unique.keys()].sort())select.add(new Option(unique.get(crop),crop));
+    select.value=old&&unique.has(old)?old:'';
+  }catch(error){console.warn('Model metadata unavailable:',error.message);}
 }
 
-$$('.nav-item').forEach(el=>el.addEventListener('click',()=>setView(el.dataset.view)));
-$$('[data-go]').forEach(el=>el.addEventListener('click',()=>setView(el.dataset.go)));
-$$('[data-model]').forEach(el=>el.addEventListener('click',()=>setModel(el.dataset.model)));
-$$('[data-select-model]').forEach(el=>el.addEventListener('click',()=>{setView('detect');setModel(el.dataset.selectModel);}));
-$('#menu-button').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
-$('#dropzone').addEventListener('click',event=>{if(!event.target.closest('#clear-image'))$('#file-input').click();});
-$('#dropzone').addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();$('#file-input').click();}});
-$('#dropzone').addEventListener('dragover',event=>{event.preventDefault();$('#dropzone').classList.add('dragging');});
-$('#dropzone').addEventListener('dragleave',()=>$('#dropzone').classList.remove('dragging'));
-$('#dropzone').addEventListener('drop',event=>{event.preventDefault();$('#dropzone').classList.remove('dragging');loadFile(event.dataTransfer.files[0]);});
-$('#file-input').addEventListener('change',event=>{loadFile(event.target.files[0]);event.target.value='';});
-$('#load-example').addEventListener('click',async()=>{try{const response=await fetch('./example-corn.jpg');if(!response.ok)throw new Error();const blob=await response.blob();setModel('disease');loadFile(new File([blob],'sample.jpg',{type:'image/jpeg'}));}catch{toast('示例图片加载失败');}});
-$('#clear-image').addEventListener('click',event=>{event.stopPropagation();if(state.running){toast('请先停止当前检测');return;}if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.loadToken++;state.objectUrl=null;state.image=null;state.frame=null;state.detections=[];$('#image-stage').classList.add('hidden');$('#drop-inner').classList.remove('hidden');$('#run-detection').disabled=true;$('#media-tip').textContent='图片越清晰，识别效果通常越好';resetResult();});
-$('#run-detection').addEventListener('click',detect);
-$('#download-result').addEventListener('click',()=>{
-  $('#preview-canvas').toBlob(blob=>{
-    if(!blob){toast('图片生成失败，请重试');return;}
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.download=`fieldlens-${new Date().toISOString().slice(0,10)}.png`;a.href=url;
-    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+function cleanSource(){
+  if(state.mediaURL){URL.revokeObjectURL(state.mediaURL);state.mediaURL=null;}
+  if(state.source?.tagName==='VIDEO')state.source.pause();
+  state.source=null;state.file=null;state.result=null;
+}
+function drawPreview(){
+  const canvas=el('preview-canvas'),source=state.source;
+  if(!source)return;
+  const width=source.naturalWidth||source.videoWidth||source.width;
+  const height=source.naturalHeight||source.videoHeight||source.height;
+  const maxSide=1600,s=Math.min(1,maxSide/Math.max(width,height));
+  canvas.width=Math.max(1,Math.round(width*s));
+  canvas.height=Math.max(1,Math.round(height*s));
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(source,0,0,canvas.width,canvas.height);
+  if(state.model!=='pest'||!state.result?.detections)return;
+  const factorX=canvas.width/width,factorY=canvas.height/height;
+  const fontSize=Math.max(12,Math.round(Math.min(canvas.width,canvas.height)/36));
+  ctx.textBaseline='top';ctx.font='600 '+fontSize+'px sans-serif';ctx.lineWidth=Math.max(2,fontSize/6);
+  for(const item of state.result.detections){
+    const x=item.x1*factorX,y=item.y1*factorY,w=(item.x2-item.x1)*factorX,h=(item.y2-item.y1)*factorY;
+    const name=item.name+'  '+Math.round(item.score*100)+'%';
+    ctx.strokeStyle='#e9b48a';ctx.strokeRect(x,y,w,h);
+    const txtWidth=ctx.measureText(name).width;
+    const labelY=Math.max(0,y-fontSize-10);
+    ctx.fillStyle='#293a40e6';ctx.fillRect(x,labelY,txtWidth+14,fontSize+10);
+    ctx.fillStyle='#fff';ctx.fillText(name,x+7,labelY+4);
+  }
+}
+async function openFile(file){
+  if(!file||state.busy)return;
+  const allowed=['image/jpeg','image/png','image/webp','video/mp4','video/webm'];
+  if(!allowed.includes(file.type)){toast('文件格式不受支持');return;}
+  if(file.size>100*1024*1024){toast('文件不能超过 100 MB');return;}
+  cleanSource();clearResult();
+  state.mediaURL=URL.createObjectURL(file);state.file=file;
+  try{
+    if(file.type.startsWith('video/')){
+      const video=document.createElement('video');video.src=state.mediaURL;video.preload='auto';video.muted=true;video.playsInline=true;
+      await new Promise((resolve,reject)=>{video.onloadeddata=resolve;video.onerror=()=>reject(new Error('视频解码失败'));video.load();});
+      video.pause();state.source=video;
+    }else{
+      const image=new Image();image.src=state.mediaURL;
+      await image.decode();state.source=image;
+    }
+  }catch(error){
+    cleanSource();toast('文件读取失败：'+error.message);return;
+  }
+  el('drop-intro').classList.add('hidden');el('preview').classList.remove('hidden');
+  el('file-name').textContent=file.name||'image';
+  el('run-button').disabled=false;drawPreview();
+  setStatus('已载入 '+(file.name||'图片'),'ok');
+}
+el('dropzone').addEventListener('click',event=>{if(event.target.closest('#remove-file'))return;el('file-input').click();});
+el('dropzone').addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&!event.target.closest('button')){event.preventDefault();el('file-input').click();}});
+el('file-input').addEventListener('change',event=>{if(event.target.files?.[0])openFile(event.target.files[0]);event.target.value='';});
+for(const eventName of ['dragenter','dragover'])el('dropzone').addEventListener(eventName,event=>{event.preventDefault();el('dropzone').classList.add('dragover');});
+for(const eventName of ['dragleave','drop'])el('dropzone').addEventListener(eventName,event=>{event.preventDefault();el('dropzone').classList.remove('dragover');});
+el('dropzone').addEventListener('drop',event=>{if(event.dataTransfer?.files?.[0])openFile(event.dataTransfer.files[0]);});
+el('remove-file').addEventListener('click',event=>{event.stopPropagation();cleanSource();clearResult();el('preview').classList.add('hidden');el('drop-intro').classList.remove('hidden');el('run-button').disabled=true;setStatus('选择文件后可开始识别');});
+el('example-button').addEventListener('click',async()=>{
+  try{const res=await fetch('./example-corn.jpg');if(!res.ok)throw new Error('示例文件未找到');const blob=await res.blob();await openFile(new File([blob],'example-corn.jpg',{type:'image/jpeg'}));}
+  catch(error){toast(error.message);}
+});
+document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='o'){event.preventDefault();el('file-input').click();}});
+
+function resultItem({name,score}){
+  const row=document.createElement('div');row.className='result-item';
+  const title=document.createElement('span');title.className='result-name';title.textContent=name;
+  const number=document.createElement('strong');number.className='result-score';number.textContent=(score*100).toFixed(1)+'%';
+  const track=document.createElement('div');track.className='bar-track';
+  const fill=document.createElement('div');fill.className='bar-fill';fill.style.width=Math.max(0,Math.min(100,score*100))+'%';
+  track.append(fill);row.append(title,number,track);return row;
+}
+function renderResult(result){
+  el('results').classList.remove('hidden');el('result-placeholder').classList.add('hidden');
+  el('result-type').textContent=result.kind==='classification'?'病害分类':'害虫检测';
+  el('result-ms').textContent=Math.round(result.elapsed)+' ms';
+  el('result-backend').textContent=result.backend;
+  const predictions=result.kind==='classification'?result.predictions:result.detections;
+  el('results-title').textContent=result.kind==='classification'?'类别概率 · TOP 5':'检测目标 · '+predictions.length;
+  const container=el('result-list');container.replaceChildren();
+  if(predictions.length)predictions.forEach(p=>container.append(resultItem(p)));
+  else{const div=document.createElement('p');div.className='result-notice';div.textContent='没有检测到达到阈值的目标。';container.append(div);}
+  el('result-notice').textContent=result.kind==='classification'
+    ?'分类概率仅在模型支持的类别范围内计算。对于未知病害，结果可能不适用。'
+    :'检测框表示模型识别的位置；未检出不代表没有害虫。';
+  el('output-state').innerHTML='<i></i> 已完成';
+}
+function readRecords(){
+  try{const value=JSON.parse(localStorage.getItem(storageKey)||'[]');return Array.isArray(value)?value:[];}catch{return [];}
+}
+function addRecord(result){
+  const top=result.kind==='classification'?result.predictions[0]:result.detections[0];
+  const item={id:Date.now(),file:state.file?.name||'未命名图片',mode:state.model,when:new Date().toISOString(),label:top?.name||'未检出',score:top?.score||0,ms:Math.round(result.elapsed)};
+  try{localStorage.setItem(storageKey,JSON.stringify([item,...readRecords()].slice(0,40)));}catch(error){console.warn('Local records unavailable',error);}
+}
+function renderRecords(){
+  const items=readRecords();el('record-count').textContent=items.length+' 条';
+  el('records-empty').classList.toggle('hidden',items.length>0);
+  const host=el('records-list');host.replaceChildren();
+  items.forEach((entry,index)=>{
+    const row=document.createElement('div');row.className='record';
+    const number=document.createElement('div');number.className='record-number';number.textContent=String(index+1).padStart(2,'0');
+    const details=document.createElement('div');
+    const strong=document.createElement('strong');strong.textContent=entry.label||'—';
+    const sub=document.createElement('span');sub.textContent=(entry.mode==='disease'?'病害分类':'害虫检测')+' · '+(entry.file||'图片')+' · '+new Date(entry.when).toLocaleString('zh-CN');
+    details.append(strong,sub);
+    const score=document.createElement('div');score.className='record-score';score.textContent=Number.isFinite(entry.score)?(entry.score*100).toFixed(1)+'%':'—';
+    row.append(number,details,score);host.append(row);
+  });
+}
+el('clear-records').addEventListener('click',()=>{if(!readRecords().length)return;if(!confirm('清空当前设备保存的识别记录？'))return;localStorage.removeItem(storageKey);renderRecords();toast('已清空记录');});
+el('run-button').addEventListener('click',async()=>{
+  if(!state.source||state.busy)return;
+  state.busy=true;el('run-button').disabled=true;el('run-button-label').textContent='分析中…';el('preview').classList.add('processing');
+  el('output-state').innerHTML='<i></i> 正在推理';clearResult();
+  try{
+    const result=await engine.run(state.source,state.model,{crop:el('crop-select').value,threshold:.25});
+    state.result=result;drawPreview();renderResult(result);addRecord(result);
+    setStatus('推理完成 · '+Math.round(result.elapsed)+' ms','ok');
+    el('output-state').innerHTML='<i></i> 已完成';
+  }catch(error){
+    console.error('Inference error:',error);setStatus('运行失败：'+error.message);
+    toast('无法完成推理：'+error.message);
+  }finally{
+    state.busy=false;el('run-button').disabled=!state.source;el('run-button-label').textContent='运行识别';el('preview').classList.remove('processing');
+  }
+});
+el('export-button').addEventListener('click',()=>{
+  if(!state.source||!state.result){toast('请先完成识别');return;}
+  const canvas=el('preview-canvas');
+  canvas.toBlob(blob=>{
+    if(!blob){toast('导出失败');return;}
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fieldlens-result.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   },'image/png');
 });
-$('#clear-history').addEventListener('click',()=>{if(confirm('确定清空此设备上的所有识别记录吗？')){localStorage.removeItem(STORAGE_KEY);renderHistory();toast('记录已清空');}});
-$('#today').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});
-$('#year').textContent=new Date().getFullYear();setModel('disease');setView(location.hash.slice(1)||'detect');
+el('crop-select').addEventListener('change',()=>{if(state.result){clearResult();drawPreview();setStatus('作物范围已改变，请重新识别');}});
+setView(viewNames[location.hash.slice(1)]?location.hash.slice(1):'inspect');
+loadCropOptions();
