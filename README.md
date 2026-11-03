@@ -43,7 +43,7 @@ npm run prepare-runtime
 准备两个目标检测权重后，导出浏览器使用的模型：
 
 ```bash
-pip install ultralytics==8.3.120 onnx==1.17.0
+pip install torch==2.6.0 torchvision==0.21.0 "numpy<2.3" ultralytics==8.3.120 onnx==1.17.0
 python scripts/export_models.py --disease models/disease.pt --pest models/pest.pt
 python -m http.server 8000 --directory dist
 ```
