@@ -12,6 +12,21 @@ On 2026-11-03 the original disease model scored mAP50 **0.0143** and mAP50-95 **
 
 [Prior real baseline run](https://github.com/cha290196-hue/FieldLens/actions/runs/41631590784) · [Baseline report](PERFORMANCE.md).
 
+## First trained candidate: verified experiment (2026-11-03)
+
+The first [12-epoch CPU training run](https://github.com/cha290196-hue/FieldLens/actions/runs/41634530999) completed successfully on a bounded three-class PlantDoc subset. The official TEST remained 26 images (26 labeled objects). After an exact-hash overlap audit, **three source TRAIN/VAL images identical to TEST images were excluded**. Training used 226 images and internal validation used 48.
+
+| Metric (fixed 26-image maize TEST) | Original disease model (28 classes) | Specialist candidate (3 classes) |
+| --- | ---: | ---: |
+| mAP@0.5 | 1.40% | **65.77%** |
+| mAP@0.5:0.95 | 0.43% | **30.03%** |
+| Precision | 35.22% | 37.82% |
+| Recall | 8.33% | **86.11%** |
+
+**Not 90%.** The reduced three-class taxonomy, public small TEST set, repeated iterative inspection, lack of external unseen field data, and low precision prevent generalizing these numbers to FieldLens as a whole. The candidate's hash: `c12e6fc4e2e195bfcbd57db6ddb7a39fc86978e4370a9b4a15f8a0c7fdd48aef`.
+
+[Download training curves, test plots, best.pt and the data manifest from GitHub Actions](https://github.com/cha290196-hue/FieldLens/actions/runs/41634530999/artifacts/13229953262).
+
 ## Implemented improvements
 
 1. A separate `maize_experiment.py` workflow downloads **only bounded PlantDoc subsets**, not the full dataset.
