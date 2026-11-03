@@ -3,11 +3,17 @@
 <p align="center"><strong>一张图片，开启一次细致的田间观察。</strong></p>
 <p align="center">病害识别 · 害虫检测 · 本地推理 · 结果记录</p>
 
+<p align="center">
+  <a href="https://cha290196-hue.github.io/FieldLens/"><strong>🌐 在线体验 FieldLens</strong></a>
+  &nbsp; · &nbsp;
+  <a href="https://github.com/cha290196-hue/FieldLens/actions/workflows/pages.yml">查看部署状态</a>
+</p>
+
 ---
 
 FieldLens 是一款面向作物健康观察的轻量视觉工作台。选择识别方向，上传图片或视频，即可查看目标的位置、类别、置信度与处理耗时。图片和识别记录保存在当前设备上。
 
-在线演示可从仓库的部署页面打开。首次使用某个模型时，浏览器需要下载对应模型文件；识别在本机完成。
+**在线体验：** [https://cha290196-hue.github.io/FieldLens/](https://cha290196-hue.github.io/FieldLens/)。首次使用某个模型时，浏览器需要下载对应模型文件；识别在本机完成。
 
 更新界面后，可在仓库的 Actions 中手动运行 `Publish demo`，刷新在线演示。
 
