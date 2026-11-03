@@ -3,11 +3,12 @@ import argparse
 import hashlib
 import json
 import shutil
-import subprocess
 import urllib.request
 from pathlib import Path
 
 from export_models import load_detector
+from onnxruntime.quantization import QuantType, quantize_dynamic
+import onnxruntime as ort
 
 DISEASE_BASE = "https://huggingface.co/rodynaemad/plant-disease-dinov2-small/resolve/main/"
 PEST_BASE = "https://huggingface.co/underdogquality/yolo11s-pest-detection/resolve/main/"
@@ -38,9 +39,20 @@ def prepare(output):
     source.mkdir(exist_ok=True)
 
     config_path = download(DISEASE_BASE + "config.json", source / "disease-config.json", 100)
-    model = download(
-        DISEASE_BASE + "onnx/model_with_features_quantized.onnx",
-        output / "disease.onnx", 15 * 1024 * 1024)
+    original = download(
+        DISEASE_BASE + "onnx/model_with_features.onnx",
+        source / "disease-fp32.onnx", 65 * 1024 * 1024)
+    model = output / "disease.onnx"
+    quantize_dynamic(
+        str(original), str(model),
+        weight_type=QuantType.QInt8,
+        op_types_to_quantize=["MatMul", "Gemm"]
+    )
+    try:
+        ort.InferenceSession(str(model), providers=["CPUExecutionProvider"])
+    except Exception:
+        shutil.copyfile(original, model)
+        ort.InferenceSession(str(model), providers=["CPUExecutionProvider"])
     config = json.loads(config_path.read_text(encoding="utf-8"))
     label_map = config.get("id2label", {})
     if not label_map:
