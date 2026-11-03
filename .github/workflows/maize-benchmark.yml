@@ -11,6 +11,11 @@ on:
 
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: maize-specialist-training
+  cancel-in-progress: true
 
 jobs:
   train-and-validate:
@@ -35,11 +40,19 @@ jobs:
           mkdir -p /tmp/fieldlens-weights
           gh release download model-assets --pattern disease.pt --dir /tmp/fieldlens-weights
           echo 'd507f693b2ff1b8e0036f9b84fa9c6068d5931b40da720abf5d62d8833dd7281  /tmp/fieldlens-weights/disease.pt' | sha256sum --check
-      - name: Train specialist candidate and compare on fixed official TEST split
+      - name: Fetch the first trained specialist checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/fieldlens-specialist
+          gh run download 41634530999 --name maize-experiment-results --dir /tmp/fieldlens-specialist
+          echo 'c12e6fc4e2e195bfcbd57db6ddb7a39fc86978e4370a9b4a15f8a0c7fdd48aef  /tmp/fieldlens-specialist/maize-train/weights/best.pt' | sha256sum --check
+      - name: Continue training and compare on the same fixed TEST split
         run: |
           python scripts/maize_experiment.py \
             --baseline /tmp/fieldlens-weights/disease.pt \
-            --max-train 280 --epochs 12 --imgsz 512 \
+            --initial-model /tmp/fieldlens-specialist/maize-train/weights/best.pt \
+            --max-train 280 --epochs 18 --imgsz 512 \
             --batch 8 --workers 6 --device cpu
       - name: Upload metrics, provenance, examples and candidate weights
         if: always()
