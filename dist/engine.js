@@ -3,6 +3,20 @@ const RUNTIME_DIR = new URL('./runtime/', import.meta.url);
 const MODEL_FILES = { disease: 'disease', pest: 'pest' };
 const INPUT_SIZE = 640;
 const NAME_MAP = {
+  'maize blight':'玉米叶枯病', 'maize rust':'玉米锈病',
+  'maize gray leaf spot':'玉米灰斑病', 'maize healthy':'健康玉米',
+  'tomato healthy':'健康番茄', 'tomato leaf blight':'番茄叶枯病',
+  'tomato leaf curl':'番茄卷叶症状', 'healthy tea':'健康茶叶',
+  'tea leaf blight':'茶叶叶枯病', 'tomato bacterial floundering':'番茄细菌性异常',
+  'maize abiotic disease':'玉米非生物性异常', 'maize stripe disease':'玉米条纹病',
+  'tomato alternaria diseases':'番茄链格孢病', 'tomato blossom end rot':'番茄脐腐病',
+  'tomato excess nitrogen':'番茄氮素过量', 'tomato healthy fruit':'健康番茄果实',
+  'fall armyworm':'草地贪夜蛾', 'maize armyworm activity':'玉米夜蛾危害',
+  'tomato helicoverpa armigera':'番茄棉铃虫', 'rice brown planthopper':'水稻褐飞虱',
+  'healthy rice':'健康水稻', 'tea algal leaf spot':'茶叶藻斑病',
+  'tea helopeltis':'茶叶盲蝽', 'tea red spider':'茶叶红蜘蛛',
+  'tea green mirid bug':'茶小绿盲蝽', 'rice hispa':'稻铁甲虫',
+  'rice leaf blast':'水稻叶瘟', 'rice brown spot':'水稻褐斑病',
   blight:'玉米大斑病', common_rust:'玉米普通锈病', gray_spot:'玉米灰斑病',
   health:'健康玉米叶片', healthy:'健康叶片', 'corn leaf blight':'玉米大斑病',
   'common rust':'玉米普通锈病', 'gray leaf spot':'玉米灰斑病',

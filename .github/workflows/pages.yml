@@ -27,13 +27,18 @@ jobs:
       - run: npm test
       - run: npm run prepare-runtime
       - run: pip install ultralytics==8.3.120 onnx==1.17.0
-      - name: Prepare model files
+      - name: Download model files
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/fieldlens-weights
           gh release download model-assets --pattern disease.pt --pattern pest.pt --dir /tmp/fieldlens-weights
-          python scripts/export_models.py --disease /tmp/fieldlens-weights/disease.pt --pest /tmp/fieldlens-weights/pest.pt
+          echo 'd507f693b2ff1b8e0036f9b84fa9c6068d5931b40da720abf5d62d8833dd7281  /tmp/fieldlens-weights/disease.pt' | sha256sum --check
+          echo '810f0df179aec54f5d9762a11df4a147ff87ef79ca46649151914eeed260237f  /tmp/fieldlens-weights/pest.pt' | sha256sum --check
+      - name: Export browser models
+        run: |
+          mkdir -p "$RUNNER_TEMP/fieldlens-home"
+          env -i PATH="$PATH" HOME="$RUNNER_TEMP/fieldlens-home" PYTHONNOUSERSITE=1 python scripts/export_models.py --disease /tmp/fieldlens-weights/disease.pt --pest /tmp/fieldlens-weights/pest.pt
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
