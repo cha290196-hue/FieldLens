@@ -11,7 +11,7 @@
 
 | 权重 | 类别 | 构建产物大小 |
 | --- | ---: | ---: |
-| Web 病害 ONNX INT8 | 38 | 24,231,170 bytes |
+| Web 病害 ONNX | 38 | 以当前构建结果为准 |
 | Web 害虫 ONNX | 102 | 38,047,184 bytes |
 | Windows 病害 ONNX 4-bit | 387 | 57,576,210 bytes |
 

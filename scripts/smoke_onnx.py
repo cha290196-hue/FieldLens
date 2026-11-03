@@ -15,7 +15,7 @@ def verify(name, classes, size):
     assert hashlib.sha256(model_path.read_bytes()).hexdigest() == meta["sha256"]
     session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
     input_spec = session.get_inputs()[0]
-    assert input_spec.shape == [1, 3, size, size], (name, input_spec.shape)
+    assert input_spec.shape[1:] == [3, size, size] and input_spec.shape[0] in (1, "batch", None), (name, input_spec.shape)
     value = np.zeros((1, 3, size, size), dtype=np.float32)
     outputs = dict(zip([x.name for x in session.get_outputs()], session.run(None, {input_spec.name: value})))
     if name == "disease":
